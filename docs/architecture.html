@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="agent-context" content="Frameshift v2 architecture reference. Stack, module map, data flow, API keys, file paths, and principles.">
+  <title>Frameshift v2 — Architecture</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #f7f4ef;
+      --accent:    #b8a9d9;
+      --accent-dk: #7a6aaa;
+      --near-blk:  #0d0d0d;
+      --body-txt:  #333333;
+      --muted:     #777777;
+      --rule:      #e0dbd2;
+      --cell-bg:   #eeeae3;
+      --nav-w:     220px;
+      --topnav-h:  44px;
+      --font-serif: 'EB Garamond', Georgia, serif;
+      --font-sans:  -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--body-txt);
+      font-family: var(--font-sans);
+      font-size: 15px;
+      line-height: 1.65;
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* ── TOPNAV ── */
+    .topnav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: var(--topnav-h);
+      background: var(--near-blk);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 2px;
+      z-index: 200;
+    }
+
+    .topnav a, .topnav .tn-ghost {
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 3px;
+      white-space: nowrap;
+      letter-spacing: .03em;
+      text-decoration: none;
+    }
+
+    .topnav a {
+      color: #999;
+      transition: color .12s, background .12s;
+    }
+
+    .topnav a:hover {
+      color: #fff;
+      background: rgba(255,255,255,.07);
+    }
+
+    .topnav a.tn-active {
+      color: var(--accent);
+    }
+
+    .topnav .tn-ghost {
+      color: #555;
+      cursor: default;
+    }
+
+    .topnav .tn-sep {
+      color: #333;
+      font-size: 11px;
+      padding: 0 2px;
+      user-select: none;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed;
+      top: var(--topnav-h); left: 0;
+      width: var(--nav-w);
+      height: calc(100vh - var(--topnav-h));
+      padding: 36px 24px;
+      border-right: 1px solid var(--rule);
+      overflow-y: auto;
+      background: var(--bg);
+    }
+
+    nav .wordmark {
+      font-family: var(--font-serif);
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--near-blk);
+      margin-bottom: 6px;
+    }
+
+    nav .sub {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      margin-bottom: 28px;
+    }
+
+    nav ul { list-style: none; }
+
+    nav ul li { margin-bottom: 2px; }
+
+    nav ul li a {
+      display: block;
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-size: 13px;
+      color: var(--muted);
+      text-decoration: none;
+      transition: background .12s, color .12s;
+    }
+
+    nav ul li a:hover {
+      background: var(--cell-bg);
+      color: var(--near-blk);
+    }
+
+    nav ul li a.active { color: var(--accent-dk); font-weight: 600; }
+
+    nav .nav-sep {
+      border: none;
+      border-top: 1px solid var(--rule);
+      margin: 14px 0;
+    }
+
+    /* ── MAIN ── */
+    main {
+      margin-left: var(--nav-w);
+      margin-top: var(--topnav-h);
+      padding: 60px 64px 100px;
+      max-width: 900px;
+      width: 100%;
+    }
+
+    .page-header {
+      margin-bottom: 56px;
+      padding-bottom: 28px;
+      border-bottom: 2px solid var(--accent);
+    }
+
+    .page-header h1 {
+      font-family: var(--font-serif);
+      font-size: 38px;
+      font-weight: 400;
+      color: var(--near-blk);
+      line-height: 1.2;
+      margin-bottom: 10px;
+    }
+
+    .page-header .meta {
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+
+    /* ── SECTIONS ── */
+    section {
+      margin-bottom: 60px;
+      scroll-margin-top: calc(var(--topnav-h) + 16px);
+    }
+
+    section h2 {
+      font-family: var(--font-serif);
+      font-size: 26px;
+      font-weight: 400;
+      color: var(--near-blk);
+      margin-bottom: 18px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--rule);
+    }
+
+    section h3 {
+      font-family: var(--font-serif);
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--near-blk);
+      margin: 24px 0 10px;
+    }
+
+    p { margin-bottom: 14px; }
+
+    /* ── TABLES ── */
+    .tbl-wrap { overflow-x: auto; margin-bottom: 8px; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+    }
+
+    thead tr {
+      background: var(--near-blk);
+      color: #fff;
+    }
+
+    thead th {
+      padding: 10px 14px;
+      text-align: left;
+      font-family: var(--font-sans);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    tbody tr { border-bottom: 1px solid var(--rule); }
+
+    tbody tr:nth-child(even) { background: var(--cell-bg); }
+
+    tbody tr:hover { background: #e9e4da; }
+
+    td {
+      padding: 9px 14px;
+      vertical-align: top;
+    }
+
+    td code, th code {
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      font-size: 12px;
+      background: rgba(0,0,0,.07);
+      padding: 1px 5px;
+      border-radius: 3px;
+    }
+
+    /* ── FLOW STEPS ── */
+    .flow-block { margin-bottom: 28px; }
+
+    .flow-block h3 {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--accent-dk);
+      margin-bottom: 10px;
+    }
+
+    .flow-steps {
+      list-style: none;
+      counter-reset: step;
+      padding-left: 0;
+    }
+
+    .flow-steps li {
+      counter-increment: step;
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      padding: 7px 0;
+      border-bottom: 1px solid var(--rule);
+      font-size: 14px;
+    }
+
+    .flow-steps li::before {
+      content: counter(step);
+      min-width: 24px;
+      height: 24px;
+      background: var(--accent);
+      color: var(--near-blk);
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    /* ── STATUS BADGES ── */
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 3px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+
+    .badge-active   { background: #d4edda; color: #2d6a4f; }
+    .badge-planned  { background: #e8e3da; color: #666; }
+
+    /* ── PRINCIPLES (dl) ── */
+    dl.principles { }
+
+    dl.principles dt {
+      font-family: var(--font-sans);
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--near-blk);
+      margin-top: 18px;
+      margin-bottom: 4px;
+    }
+
+    dl.principles dd {
+      margin-left: 0;
+      padding-left: 16px;
+      border-left: 3px solid var(--accent);
+      color: var(--body-txt);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    /* ── PIPELINE DIAGRAMS ── */
+    .pipeline-diagrams-wrap {
+      display: flex;
+      gap: 28px;
+      align-items: flex-start;
+      flex-wrap: wrap;
+    }
+
+    .pipeline-col {
+      flex: 1;
+      min-width: 260px;
+    }
+
+    .pipeline-col > h3 {
+      font-family: var(--font-sans);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--accent-dk);
+      margin: 0 0 14px;
+      border-bottom: none;
+    }
+
+    .pd-diagram {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .pd-box {
+      padding: 9px 14px;
+      border-radius: 4px;
+      font-size: 12.5px;
+      text-align: center;
+      line-height: 1.4;
+    }
+
+    .pd-box code {
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      font-size: 11.5px;
+      background: transparent;
+      padding: 0;
+    }
+
+    .pd-human    { background: #2d6a4f; color: #fff; }
+    .pd-telegram { background: #0d0d0d; color: #fff; }
+    .pd-module   { background: var(--accent); color: #0d0d0d; }
+    .pd-api      { background: #f0ede8; color: #555; border: 1.5px dashed #c8bfb0; }
+
+    .pd-arrow {
+      text-align: center;
+      color: var(--accent);
+      font-size: 16px;
+      line-height: 1;
+      padding: 3px 0;
+    }
+
+    .pd-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+
+    .pd-legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .pd-legend-swatch {
+      display: inline-block;
+      width: 12px; height: 12px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    /* ── FEEDBACK LOOP DIAGRAM ── */
+    .fl-diagram {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      max-width: 680px;
+    }
+
+    .fl-split-header {
+      display: flex;
+      justify-content: space-around;
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 600;
+      padding: 4px 5%;
+      letter-spacing: .03em;
+    }
+
+    .fl-branch-row {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+    }
+
+    .fl-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .fl-converge {
+      text-align: center;
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      padding: 6px 0 2px;
+    }
+
+    .fl-loop-close {
+      border: 2px solid var(--accent-dk);
+      font-weight: 600;
+    }
+
+    .pd-rejected { background: #555; color: #fff; }
+
+    /* ── FOOTER ── */
+    footer {
+      margin-top: 80px;
+      padding-top: 24px;
+      border-top: 1px solid var(--rule);
+      font-size: 12px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+
+<div class="topnav">
+  <a href="index.html">Overview</a>
+  <span class="tn-sep">/</span>
+  <a href="architecture.html" class="tn-active">Architecture</a>
+  <span class="tn-sep">/</span>
+  <a href="roadmap.html">Roadmap</a>
+  <span class="tn-sep">/</span>
+  <a href="design-system.html">Design System</a>
+  <span class="tn-sep">/</span>
+  <a href="writer-contract.html">Writer Contract</a>
+  <span class="tn-sep">/</span>
+  <a href="runbook.html">Runbook</a>
+</div>
+
+<nav>
+  <div class="wordmark">The Frameshift</div>
+  <div class="sub">Architecture</div>
+  <ul>
+    <li><a href="#overview">Overview</a></li>
+    <li><a href="#stack">Stack</a></li>
+    <hr class="nav-sep">
+    <li><a href="#modules">Module Map</a></li>
+    <li><a href="#data-flow">Data Flow</a></li>
+    <li><a href="#pipeline-diagrams">Pipelines</a></li>
+    <li><a href="#rl-system">Self-Learning</a></li>
+    <hr class="nav-sep">
+    <li><a href="#api-keys">API Keys</a></li>
+    <li><a href="#file-paths">File Paths</a></li>
+    <hr class="nav-sep">
+    <li><a href="#principles">Principles</a></li>
+  </ul>
+</nav>
+
+<main>
+  <header class="page-header">
+    <h1>Frameshift v2 — Architecture</h1>
+    <div class="meta">Last updated: 2026-06-11 &nbsp;·&nbsp; @ai.xr.frameshift</div>
+  </header>
+
+  <!-- ── OVERVIEW ── -->
+  <section id="overview">
+    <h2>Overview</h2>
+    <p>
+      Frameshift v2 is a lean, two-mode carousel generation system running on a MacBook.
+      It converts any article URL into a branded Instagram carousel of 4–8 slides,
+      rendered at 1080×1350px, and delivers them to Telegram. No vector store,
+      no dashboard, no ChromaDB — flat files and clean module seams.
+    </p>
+    <p>
+      <strong>Brand:</strong> The Frameshift &nbsp;/&nbsp; <code>@ai.xr.frameshift</code><br>
+      <strong>Built by:</strong> Snow Abad
+    </p>
+
+    <h3>Two modes</h3>
+    <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr><th>Mode</th><th>Trigger</th><th>Turnaround</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>On-demand</strong></td>
+          <td>Send <code>/carousel &lt;url&gt;</code> to Telegram bot</td>
+          <td>~5 min</td>
+          <td><span class="badge badge-active">Shipped — Phase 1</span></td>
+        </tr>
+        <tr>
+          <td><strong>Auto-daily</strong></td>
+          <td>Scheduled run → approval → batch delivery</td>
+          <td>3–5 carousels/day</td>
+          <td><span class="badge badge-active">Shipped — Phase 2</span></td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </section>
+
+  <!-- ── STACK ── -->
+  <section id="stack">
+    <h2>Stack</h2>
+    <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr><th>Layer</th><th>Technology</th><th>Version / Notes</th><th>Why</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Runtime</td>
+          <td>Python</td>
+          <td>3.11 (system: 3.9 fallback)</td>
+          <td>Available in existing <code>~/frameshift/venv</code></td>
+        </tr>
+        <tr>
+          <td>Image rendering</td>
+          <td>Pillow</td>
+          <td>latest</td>
+          <td>PNG output, text wrapping, gradient compositing, center-crop</td>
+        </tr>
+        <tr>
+          <td>LLM — primary</td>
+          <td>Groq llama-3.3-70b-versatile</td>
+          <td><code>api.groq.com/openai/v1/chat/completions</code> · temp=0.3 · max_tokens=2000</td>
+          <td>OpenAI-compatible API, fast JSON output, schema-compliant</td>
+        </tr>
+        <tr>
+          <td>LLM — fallback</td>
+          <td>Groq llama-3.1-70b-versatile</td>
+          <td>Same endpoint, auto-triggered on 429 after retry wait</td>
+          <td>Activated when primary returns 429 twice</td>
+        </tr>
+        <tr>
+          <td>Scraping</td>
+          <td>requests + BeautifulSoup</td>
+          <td>latest</td>
+          <td>OG tag extraction, <code>&lt;p&gt;</code> body pull, timeout + UA header</td>
+        </tr>
+        <tr>
+          <td>Delivery</td>
+          <td>python-telegram-bot</td>
+          <td>latest</td>
+          <td>Media group send, bot command listener</td>
+        </tr>
+        <tr>
+          <td>Scheduling</td>
+          <td>APScheduler</td>
+          <td>latest</td>
+          <td>Cron-style daily runs without a daemon</td>
+        </tr>
+        <tr>
+          <td>Config</td>
+          <td>python-dotenv + YAML</td>
+          <td>latest</td>
+          <td>Secrets from <code>.env</code>, source list from <code>config/sources.yaml</code></td>
+        </tr>
+        <tr>
+          <td>Typography</td>
+          <td>EB Garamond + DM Sans</td>
+          <td>TTF files in <code>fonts/</code>; DejaVu fallback</td>
+          <td>Brand-approved typefaces; pipeline never dies on missing fonts</td>
+        </tr>
+        <tr>
+          <td>Image gen</td>
+          <td>FLUX via router.huggingface.co</td>
+          <td>3 rotating <code>HF_API_KEY</code> keys, 896×1120px output</td>
+          <td>Fallback cover image when OG image is absent or too small</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </section>
+
+  <!-- ── MODULES ── -->
+  <section id="modules">
+    <h2>Module Map</h2>
+    <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr><th>File</th><th>Role</th><th>Input</th><th>Output</th><th>Dependencies</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>watcher/design_constants.py</code></td>
+          <td>Single source of truth for all design values, writer schema, and prompt template</td>
+          <td>—</td>
+          <td>Constants: colours, sizes, <code>WRITER_SCHEMA</code>, <code>WRITER_PROMPT</code></td>
+          <td>None</td>
+        </tr>
+        <tr>
+          <td><code>watcher/renderer.py</code></td>
+          <td>Renders slide JSON to 1080×1350 PNG files using Pillow</td>
+          <td>List of slide dicts (from <code>writer.write()</code>)</td>
+          <td>PNG files written to <code>output/</code>; list of file paths</td>
+          <td>Pillow, <code>design_constants</code>, font TTFs</td>
+        </tr>
+        <tr>
+          <td><code>watcher/writer.py</code></td>
+          <td>Scrapes article + calls Groq (llama-3.3-70b-versatile) → validated carousel JSON + image</td>
+          <td>URL string</td>
+          <td><code>{"slides": [...], "caption": str, "og_image_url": str|None, "image_obj": PIL.Image|None}</code></td>
+          <td>requests, BeautifulSoup, python-dotenv, <code>design_constants</code>, <code>renderer.RENDERERS</code></td>
+        </tr>
+        <tr>
+          <td><code>watcher/ingestion.py</code></td>
+          <td>Fetch, score, rank, and send candidate stories to Telegram</td>
+          <td>Sources from <code>config/sources.yaml</code> + Serper + NewsAPI + RSS</td>
+          <td>Top-10 ranked candidates → Telegram + <code>store/candidates_{ts}.json</code></td>
+          <td>requests, feedparser, yaml, SERPER_API_KEY, NEWS_API_KEY, TELEGRAM_BOT_TOKEN</td>
+        </tr>
+        <tr>
+          <td><code>watcher/delivery.py</code></td>
+          <td>Sends rendered PNGs as Telegram media group</td>
+          <td>List of PNG paths + caption string</td>
+          <td>Telegram message; log entry in <code>store/delivered.json</code></td>
+          <td>python-telegram-bot, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID</td>
+        </tr>
+        <tr>
+          <td><code>watcher/scorer.py</code></td>
+          <td>Applies domain reliability multiplier to raw candidate scores</td>
+          <td>Raw candidates from <code>ingestion.py</code></td>
+          <td>Adjusted scores; domains with &lt;3 scrape attempts pass through unchanged</td>
+          <td><code>store/scoring_weights.json</code></td>
+        </tr>
+        <tr>
+          <td><code>watcher/feedback.py</code></td>
+          <td>Records scrape success/failure per domain; updates <code>domain_reliability</code> in scoring weights</td>
+          <td>URL + success bool (called by <code>bot.py</code> after each carousel attempt)</td>
+          <td><code>store/feedback_log.json</code> + updated <code>store/scoring_weights.json</code></td>
+          <td>None</td>
+        </tr>
+        <tr>
+          <td><code>watcher/bot.py</code></td>
+          <td>Main entry point — Telegram bot + APScheduler daily scheduler</td>
+          <td>Telegram commands; APScheduler 8am Toronto trigger</td>
+          <td>Orchestrates writer → renderer → delivery; logs to <code>store/run_log.json</code></td>
+          <td>writer, renderer, delivery, ingestion, feedback, python-telegram-bot, pytz</td>
+        </tr>
+        <tr>
+          <td><code>watcher/image_fetcher.py</code></td>
+          <td>Fetch OG image or generate via FLUX.1-schnell on HuggingFace</td>
+          <td>OG image URL + image query string (from cover slide)</td>
+          <td>PIL Image or None (renderer uses dark placeholder when None)</td>
+          <td>requests, Pillow, HF_API_KEY(s)</td>
+        </tr>
+        <tr>
+          <td><code>config/sources.yaml</code></td>
+          <td>RSS feeds and search topics for ingestion</td>
+          <td>—</td>
+          <td>Parsed by <code>ingestion.py</code></td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td><code>store/</code></td>
+          <td>Flat JSON run logs and rendered output</td>
+          <td>—</td>
+          <td><code>delivered.json</code>, <code>run_log.json</code></td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td><code>fonts/</code></td>
+          <td>EB Garamond + DM Sans TTF files</td>
+          <td>—</td>
+          <td>Loaded by <code>renderer.py</code></td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td><code>.env</code></td>
+          <td>API keys and secrets</td>
+          <td>—</td>
+          <td>Loaded via python-dotenv in <code>writer.py</code> (and future modules)</td>
+          <td>—</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </section>
+
+  <!-- ── DATA FLOW ── -->
+  <section id="data-flow">
+    <h2>Data Flow</h2>
+
+    <div class="flow-block">
+      <h3>On-demand flow</h3>
+      <ol class="flow-steps">
+        <li>User sends <code>/carousel &lt;url&gt;</code> command to Telegram bot</li>
+        <li><code>bot.py</code> receives command, validates URL, replies "Generating carousel..."</li>
+        <li><code>writer.scrape(url)</code> — 7-strategy fallback chain (p tags → article → divs → main → largest div → mobile UA → Jina Reader API); extracts title, body (max 8 000 chars), <code>og:image</code> URL</li>
+        <li><code>writer.write(article)</code> — builds prompt, calls Groq llama-3.3-70b-versatile (falls back to llama-3.1-70b-versatile on 429), validates JSON schema</li>
+        <li><code>image_fetcher.get_cover_image()</code> — fetches OG image (≥400×300px) or generates via FLUX, returns PIL Image or None</li>
+        <li><code>renderer.render_carousel(slides, image_obj)</code> — renders each slide to 1080×1350 PNG</li>
+        <li><code>delivery.send(png_paths, data, url)</code> — posts media group to Telegram, logs to <code>store/delivered.json</code></li>
+        <li><code>feedback.record_scrape_attempt(url, success)</code> — updates domain reliability</li>
+      </ol>
+    </div>
+
+    <div class="flow-block">
+      <h3>Auto-daily flow</h3>
+      <ol class="flow-steps">
+        <li>APScheduler fires at configured time (default 8 am Toronto)</li>
+        <li><code>ingestion.py</code> — queries Serper API + NewsAPI + RSS feeds, scores by recency × source tier, deduplicates</li>
+        <li>Ranked candidate list sent to Telegram for approval</li>
+        <li>User replies <code>ALL</code>, story numbers (e.g. <code>1,3</code>), or <code>SKIP</code> — 2-hour window</li>
+        <li>For each approved story: <code>writer.generate(url)</code> → slides + caption + image</li>
+        <li><code>renderer.render_carousel(slides)</code> → PNG files in <code>output/</code></li>
+        <li><code>delivery.send()</code> → Telegram media group for each carousel</li>
+        <li>Run logged to <code>store/run_log.json</code></li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ── PIPELINE DIAGRAMS ── -->
+  <section id="pipeline-diagrams">
+    <h2>Pipeline Diagrams</h2>
+
+    <div class="pd-legend">
+      <div class="pd-legend-item">
+        <span class="pd-legend-swatch" style="background:#2d6a4f;"></span> Human action
+      </div>
+      <div class="pd-legend-item">
+        <span class="pd-legend-swatch" style="background:#0d0d0d;"></span> Telegram
+      </div>
+      <div class="pd-legend-item">
+        <span class="pd-legend-swatch" style="background:#b8a9d9;"></span> Python module
+      </div>
+      <div class="pd-legend-item">
+        <span class="pd-legend-swatch" style="background:#f0ede8;border:1px dashed #c8bfb0;"></span> External API
+      </div>
+    </div>
+
+    <div class="pipeline-diagrams-wrap">
+
+      <div class="pipeline-col">
+        <h3>On-demand flow</h3>
+        <div class="pd-diagram">
+          <div class="pd-box pd-human">User sends <code>/carousel &lt;url&gt;</code></div>
+          <div class="pd-arrow">↓</div>
+          <div class="pd-box pd-telegram">Telegram bot receives command</div>
+          <div class="pd-arrow">↓</div>
+          <div class="pd-box pd-module"><code>bot.py</code> — validates URL, replies "Generating..."</div>
+          <div class="pd-arrow">↓</div>
+          <div class="pd-box pd-module"><code>writer.scrape(url)</code> — title, body (7 strategies + Jina), og:image</div>
+          <div class="pd-arrow">↓</div>
+          <div class="pd-box pd-api">Groq llama-3.3-70b-versatile (→ llama-3.1-70b-versatile on 429)</div>
+          <div class="pd-arrow">↓</div>
+          <div class="pd-box pd-module"><code>writer.write()</code> — validate JSON schema</div>
+          <div class="pd-arrow">↓</div>
+          <div class="pd-box pd-api"><code>image_fetcher</code> — OG image or FLUX.1-schnell</div>
+          <div class="pd-arrow">↓</div>
+          <div class="pd-box pd-module"><code>renderer.render_carousel(slides, image_obj)</code> — 1080×1350 PNGs</div>
+          <div class="pd-arrow">↓</div>
+          <div class="pd-box pd-module"><code>delivery.send()</code> — Telegram media group</div>
+          <div class="pd-arrow">↓</div>
+          <div class="pd-box pd-telegram">Carousel delivered · logged to <code>delivered.json</code> + <code>run_log.json</code></div>
+        </div>
+      </div>
+
+      <div class="pipeline-col">
+        <h3>Auto-daily flow</h3>
+        <div class="pd-diagram">
+          <div class="pd-box pd-module">APScheduler fires — 8am Toronto</div>
+          <div class="pd-arrow">↓</div>
+          <div class="pd-box pd-module"><code>ingestion.py</code> — Serper + NewsAPI + RSS</div>
+          <div class="pd-arrow">↓</div>
+          <div class="pd-box pd-api">Serper API &nbsp;/&nbsp; NewsAPI &nbsp;/&nbsp; RSS feeds</div>
+          <div class="pd-arrow">↓</div>
+          <div class="pd-box pd-module">Score: recency × source tier · deduplicate</div>
+          <div class="pd-arrow">↓</div>
+          <div class="pd-box pd-telegram">Candidate list sent to Telegram</div>
+          <div class="pd-arrow">↓</div>
+          <div class="pd-box pd-human">User replies ALL / 1,3,5 / SKIP (2h window)</div>
+          <div class="pd-arrow">↓</div>
+          <div class="pd-box pd-module"><code>writer.generate(url)</code> per approved story</div>
+          <div class="pd-arrow">↓</div>
+          <div class="pd-box pd-api">Groq llama-3.3-70b-versatile (→ llama-3.1-70b-versatile on 429)</div>
+          <div class="pd-arrow">↓</div>
+          <div class="pd-box pd-module"><code>renderer.render_carousel()</code> — PNGs</div>
+          <div class="pd-arrow">↓</div>
+          <div class="pd-box pd-module"><code>delivery.send()</code> — batch media groups</div>
+          <div class="pd-arrow">↓</div>
+          <div class="pd-box pd-telegram">Carousels delivered · logged to <code>run_log.json</code></div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ── RL SYSTEM ── -->
+  <section id="rl-system">
+    <h2>Self-Learning System</h2>
+    <p>
+      The auto-daily pipeline includes a reinforcement learning feedback loop.
+      Operator approval and rejection signals update source and topic scoring weights,
+      improving candidate selection over time. Full explanation of the Contextual Bandit
+      approach and weight update algorithm:
+      <a href="index.html#self-learning">Project Overview — Self-Learning</a>.
+    </p>
+
+    <h3>Feedback Loop</h3>
+
+    <div class="pd-legend">
+      <div class="pd-legend-item">
+        <span class="pd-legend-swatch" style="background:#2d6a4f;"></span> Human action
+      </div>
+      <div class="pd-legend-item">
+        <span class="pd-legend-swatch" style="background:#0d0d0d;"></span> Telegram
+      </div>
+      <div class="pd-legend-item">
+        <span class="pd-legend-swatch" style="background:#b8a9d9;"></span> Python module
+      </div>
+      <div class="pd-legend-item">
+        <span class="pd-legend-swatch" style="background:#f0ede8;border:1px dashed #c8bfb0;"></span> Storage
+      </div>
+    </div>
+
+    <div class="fl-diagram">
+      <div class="pd-box pd-module">APScheduler fires — 8am Toronto</div>
+      <div class="pd-arrow">↓</div>
+      <div class="pd-box pd-module"><code>ingestion.py</code> — fetch candidates (Serper + RSS + NewsAPI)</div>
+      <div class="pd-arrow">↓</div>
+      <div class="pd-box pd-module"><code>scorer.py</code> — apply <code>domain_reliability</code> from <code>scoring_weights.json</code></div>
+      <div class="pd-arrow">↓</div>
+      <div class="pd-box pd-telegram">Telegram — top-10 candidates; user replies ALL / 1,3,5 / SKIP</div>
+      <div class="pd-arrow">↓</div>
+      <div class="pd-box pd-human">Approved stories → <code>writer.generate(url)</code> per story</div>
+      <div class="pd-arrow">↓</div>
+      <div class="fl-split-header">
+        <span>↙ Scrape succeeded</span>
+        <span>Scrape failed ↘</span>
+      </div>
+      <div class="fl-branch-row">
+        <div class="fl-col">
+          <div class="pd-box pd-module"><code>renderer.py</code> + <code>delivery.py</code> — deliver</div>
+          <div class="pd-arrow">↓</div>
+          <div class="pd-box pd-module"><code>feedback.py</code> — record success for domain</div>
+        </div>
+        <div class="fl-col">
+          <div class="pd-box pd-rejected">Error reply to user</div>
+          <div class="pd-arrow">↓</div>
+          <div class="pd-box pd-module"><code>feedback.py</code> — record failure for domain</div>
+        </div>
+      </div>
+      <div class="fl-converge">↓ both paths ↓</div>
+      <div class="pd-box pd-api"><code>domain_reliability</code> in <code>scoring_weights.json</code> updated</div>
+      <div class="pd-arrow">↓</div>
+      <div class="pd-box pd-module fl-loop-close">Next ingestion: unreliable domains score lower ← loop closes</div>
+    </div>
+  </section>
+
+  <!-- ── API KEYS ── -->
+  <section id="api-keys">
+    <h2>API Keys</h2>
+    <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr><th>Key name</th><th>Used by</th><th>Purpose</th><th>Notes</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>GROQ_API_KEY</code></td>
+          <td><code>writer.py</code></td>
+          <td>Groq API — llama-3.3-70b-versatile (primary) + llama-3.1-70b-versatile (fallback on 429)</td>
+          <td><span class="badge badge-active">Active</span> — required; bot exits on missing key</td>
+        </tr>
+        <tr>
+          <td><code>GEMINI_API_KEY</code></td>
+          <td>—</td>
+          <td>No longer used — replaced by Groq in Phase 1</td>
+          <td><span class="badge badge-planned">Deprecated</span> — remove from <code>.env</code> if present</td>
+        </tr>
+        <tr>
+          <td><code>TELEGRAM_BOT_TOKEN</code></td>
+          <td><code>bot.py</code>, <code>delivery.py</code></td>
+          <td>Authenticate Telegram bot</td>
+          <td><span class="badge badge-active">Active</span> — required; bot exits on missing key</td>
+        </tr>
+        <tr>
+          <td><code>TELEGRAM_CHAT_ID</code></td>
+          <td><code>bot.py</code>, <code>delivery.py</code>, <code>ingestion.py</code></td>
+          <td>Target chat/channel for candidate list and carousel delivery</td>
+          <td><span class="badge badge-active">Active</span> — required</td>
+        </tr>
+        <tr>
+          <td><code>HF_API_KEY</code><br><code>HF_API_KEY_2</code><br><code>HF_API_KEY_3</code></td>
+          <td><code>image_fetcher.py</code></td>
+          <td>FLUX.1-schnell image generation via <code>router.huggingface.co</code> — 3 rotating keys to spread rate limits</td>
+          <td><span class="badge badge-active">Active</span> — optional; renderer uses dark placeholder if all keys absent or fail</td>
+        </tr>
+        <tr>
+          <td><code>SERPER_API_KEY</code></td>
+          <td><code>ingestion.py</code></td>
+          <td>Serper Google Search API — topic queries for source discovery</td>
+          <td><span class="badge badge-active">Active</span> — optional; ingestion skips Serper if missing</td>
+        </tr>
+        <tr>
+          <td><code>NEWS_API_KEY</code></td>
+          <td><code>writer.py</code> (module-level load), <code>ingestion.py</code></td>
+          <td>NewsAPI headline feed for broad coverage</td>
+          <td><span class="badge badge-active">Active</span> — optional; ingestion skips NewsAPI if missing</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </section>
+
+  <!-- ── FILE PATHS ── -->
+  <section id="file-paths">
+    <h2>File Paths</h2>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:14px;">All paths relative to <code>~/frameshift_v2/</code></p>
+    <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr><th>Path</th><th>Purpose</th><th>Notes</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>watcher/design_constants.py</code></td>
+          <td>Pixel spec, colours, type sizes, writer schema, prompt template</td>
+          <td>Imported by <code>renderer.py</code> and <code>writer.py</code>. Edit to change design or prompt behaviour.</td>
+        </tr>
+        <tr>
+          <td><code>watcher/renderer.py</code></td>
+          <td>Pillow PNG renderer — 8 slide types</td>
+          <td>Public API: <code>render_carousel(slides_json)</code>. Run standalone to test: <code>python3 watcher/renderer.py</code></td>
+        </tr>
+        <tr>
+          <td><code>watcher/writer.py</code></td>
+          <td>scrape() + write() + generate()</td>
+          <td>Run standalone: <code>python3 watcher/writer.py &lt;url&gt;</code>. Loads <code>.env</code> relative to <code>__file__</code>.</td>
+        </tr>
+        <tr>
+          <td><code>watcher/bot.py</code></td>
+          <td>Main entry point — Telegram bot + APScheduler</td>
+          <td>Start: <code>python3 watcher/bot.py</code>. Logs startup to stdout; runs polling loop.</td>
+        </tr>
+        <tr>
+          <td><code>watcher/image_fetcher.py</code></td>
+          <td>OG image fetch + FLUX.1-schnell fallback</td>
+          <td>Called by <code>writer.generate()</code>. Rotates 3 HF keys on 429. Returns PIL Image or None.</td>
+        </tr>
+        <tr>
+          <td><code>watcher/feedback.py</code></td>
+          <td>Scrape reliability tracking per domain</td>
+          <td>Called by <code>bot.py</code> after each attempt. Writes <code>feedback_log.json</code> + updates <code>scoring_weights.json</code>.</td>
+        </tr>
+        <tr>
+          <td><code>watcher/scorer.py</code></td>
+          <td>Domain reliability multiplier for candidate scoring</td>
+          <td>Called by <code>ingestion.py</code>. Applies domain_reliability from <code>scoring_weights.json</code> after 3+ attempts.</td>
+        </tr>
+        <tr>
+          <td><code>watcher/ingestion.py</code></td>
+          <td>Source scoring, candidate selection</td>
+          <td>Run standalone: <code>python3 watcher/ingestion.py</code>. Saves <code>store/candidates_{ts}.json</code>.</td>
+        </tr>
+        <tr>
+          <td><code>watcher/delivery.py</code></td>
+          <td>Telegram media group sender</td>
+          <td>Run standalone with <code>--url</code> flag. Logs delivery to <code>store/delivered.json</code>.</td>
+        </tr>
+        <tr>
+          <td><code>watcher/__init__.py</code></td>
+          <td>Package marker</td>
+          <td>Empty.</td>
+        </tr>
+        <tr>
+          <td><code>config/sources.yaml</code></td>
+          <td>RSS feeds and search topics for ingestion</td>
+          <td>Populated. Tiers A=8, B=6, C=4, D=2. Add new feeds here; blocklist enforced by <code>ingestion.py</code>.</td>
+        </tr>
+        <tr>
+          <td><code>fonts/</code></td>
+          <td>EB Garamond (Regular, Italic, Bold) + DM Sans (Regular, Medium, Bold) TTF files</td>
+          <td>Renderer falls back to DejaVu if files are absent or under 1 KB.</td>
+        </tr>
+        <tr>
+          <td><code>output/</code></td>
+          <td>Rendered PNG slides</td>
+          <td>Written by <code>renderer.render_carousel()</code>. Not committed to git.</td>
+        </tr>
+        <tr>
+          <td><code>store/</code></td>
+          <td>Flat JSON run logs, delivery receipts</td>
+          <td><code>delivered.json</code>, <code>run_log.json</code> — written at runtime.</td>
+        </tr>
+        <tr>
+          <td><code>store/feedback_log.json</code></td>
+          <td>Per-story approval/rejection log</td>
+          <td>Written by <code>feedback.py</code> (called from <code>bot.py</code>) after each carousel attempt. Contains domain, URL, timestamp, success bool.</td>
+        </tr>
+        <tr>
+          <td><code>store/scoring_weights.json</code></td>
+          <td>Learned source/topic scoring weights</td>
+          <td>Updated by <code>feedback.py</code> after each attempt. Contains <code>domain_reliability</code> map. Read by <code>scorer.py</code> during ingestion.</td>
+        </tr>
+        <tr>
+          <td><code>docs/</code></td>
+          <td>Agent-first HTML documentation</td>
+          <td>Ships with each phase. This file: <code>docs/architecture.html</code>.</td>
+        </tr>
+        <tr>
+          <td><code>.env</code></td>
+          <td>API keys and secrets</td>
+          <td>Never committed. Loaded via python-dotenv. See <a href="#api-keys">API Keys</a> section.</td>
+        </tr>
+        <tr>
+          <td><code>ROADMAP.md</code></td>
+          <td>Phase status, build sequence, decisions log</td>
+          <td>Also rendered as <code>docs/roadmap.html</code>.</td>
+        </tr>
+        <tr>
+          <td><code>DECISIONS.md</code></td>
+          <td>Architecture decision records — why not what</td>
+          <td>ADR-001 through ADR-012. Add new entries at the top.</td>
+        </tr>
+        <tr>
+          <td><code>RUNLOG.md</code></td>
+          <td>Operational history — notable runs, failures, fixes</td>
+          <td>Human-written. Add new entries at the top after each notable event.</td>
+        </tr>
+        <tr>
+          <td><code>requirements.txt</code></td>
+          <td>Python dependencies</td>
+          <td>pillow, requests, beautifulsoup4, google-generativeai, python-telegram-bot, python-dotenv, apscheduler</td>
+        </tr>
+        <tr>
+          <td><code>tests/</code></td>
+          <td>Unit, functional, regression, smoke tests</td>
+          <td>Shipped. <code>unit/</code> (schema + renderer), <code>regression/</code> (18 pixel-diff tests), <code>smoke.py</code> (9-check end-to-end). Run: <code>make test</code>, <code>make regression</code>, <code>make smoke</code>.</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </section>
+
+  <!-- ── PRINCIPLES ── -->
+  <section id="principles">
+    <h2>Architecture Principles</h2>
+    <dl class="principles">
+      <dt>No database</dt>
+      <dd>Flat JSON files only. Stories live as JSON per run, deleted after delivery.</dd>
+
+      <dt>Clean seams</dt>
+      <dd>Each module has one input type, one output type. Testable in isolation.</dd>
+
+      <dt>Ground or abstain</dt>
+      <dd>If source doesn't support a claim, omit the slide. Wired into prompt, not retrofitted.</dd>
+
+      <dt>Instruction-driven structure</dt>
+      <dd>Slide selection is a prompt, not code. Change behaviour by editing the prompt.</dd>
+
+      <dt>Fallback everywhere</dt>
+      <dd>Groq model fallback (llama-3.1-70b-versatile on 429), font fallback (DejaVu if TTFs absent), image fallback (OG → FLUX → dark placeholder). Pipeline never dies silently.</dd>
+
+      <dt>Documentation ships with each phase, not after</dt>
+      <dd>tests/ and docs/ are built alongside features, never deferred.</dd>
+    </dl>
+  </section>
+
+  <footer>
+    Frameshift v2 &nbsp;·&nbsp; The Frameshift &nbsp;·&nbsp; @ai.xr.frameshift &nbsp;·&nbsp; Built by Snow Abad
+  </footer>
+</main>
+
+</body>
+</html>

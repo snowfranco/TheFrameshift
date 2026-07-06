@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="agent-context" content="Frameshift v2 design system. Slide types, pixel specs, colour values, font sizes, spacing. Renderer source of truth.">
+  <title>Frameshift v2 — Design System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #f7f4ef;
+      --accent:    #b8a9d9;
+      --accent-dk: #7a6aaa;
+      --near-blk:  #0d0d0d;
+      --body-txt:  #333333;
+      --muted:     #777777;
+      --rule:      #e0dbd2;
+      --cell-bg:   #eeeae3;
+      --nav-w:     220px;
+      --topnav-h:  44px;
+      --font-serif: 'EB Garamond', Georgia, serif;
+      --font-sans:  -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--body-txt);
+      font-family: var(--font-sans);
+      font-size: 15px;
+      line-height: 1.65;
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* ── TOPNAV ── */
+    .topnav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: var(--topnav-h);
+      background: var(--near-blk);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 2px;
+      z-index: 200;
+    }
+
+    .topnav a, .topnav .tn-ghost {
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 3px;
+      white-space: nowrap;
+      letter-spacing: .03em;
+      text-decoration: none;
+    }
+
+    .topnav a {
+      color: #999;
+      transition: color .12s, background .12s;
+    }
+
+    .topnav a:hover {
+      color: #fff;
+      background: rgba(255,255,255,.07);
+    }
+
+    .topnav a.tn-active {
+      color: var(--accent);
+    }
+
+    .topnav .tn-ghost {
+      color: #555;
+      cursor: default;
+    }
+
+    .topnav .tn-sep {
+      color: #333;
+      font-size: 11px;
+      padding: 0 2px;
+      user-select: none;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed;
+      top: var(--topnav-h); left: 0;
+      width: var(--nav-w);
+      height: calc(100vh - var(--topnav-h));
+      padding: 36px 24px;
+      border-right: 1px solid var(--rule);
+      overflow-y: auto;
+      background: var(--bg);
+    }
+
+    nav .wordmark {
+      font-family: var(--font-serif);
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--near-blk);
+      margin-bottom: 6px;
+    }
+
+    nav .sub {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      margin-bottom: 28px;
+    }
+
+    nav ul { list-style: none; }
+    nav ul li { margin-bottom: 2px; }
+
+    nav ul li a {
+      display: block;
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-size: 13px;
+      color: var(--muted);
+      text-decoration: none;
+      transition: background .12s, color .12s;
+    }
+
+    nav ul li a:hover {
+      background: var(--cell-bg);
+      color: var(--near-blk);
+    }
+
+    nav ul li a.active { color: var(--accent-dk); font-weight: 600; }
+
+    nav ul li.nav-sub a {
+      padding-left: 22px;
+      font-size: 12px;
+    }
+
+    nav .nav-sep {
+      border: none;
+      border-top: 1px solid var(--rule);
+      margin: 14px 0;
+    }
+
+    /* ── MAIN ── */
+    main {
+      margin-left: var(--nav-w);
+      margin-top: var(--topnav-h);
+      padding: 60px 64px 100px;
+      max-width: 900px;
+      width: 100%;
+    }
+
+    .page-header {
+      margin-bottom: 56px;
+      padding-bottom: 28px;
+      border-bottom: 2px solid var(--accent);
+    }
+
+    .page-header h1 {
+      font-family: var(--font-serif);
+      font-size: 38px;
+      font-weight: 400;
+      color: var(--near-blk);
+      line-height: 1.2;
+      margin-bottom: 10px;
+    }
+
+    .page-header .meta {
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+
+    /* ── SECTIONS ── */
+    section {
+      margin-bottom: 60px;
+      scroll-margin-top: calc(var(--topnav-h) + 16px);
+    }
+
+    section h2 {
+      font-family: var(--font-serif);
+      font-size: 26px;
+      font-weight: 400;
+      color: var(--near-blk);
+      margin-bottom: 18px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--rule);
+    }
+
+    p { margin-bottom: 14px; }
+
+    /* ── TABLES ── */
+    .tbl-wrap { overflow-x: auto; margin-bottom: 8px; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+    }
+
+    thead tr {
+      background: var(--near-blk);
+      color: #fff;
+    }
+
+    thead th {
+      padding: 10px 14px;
+      text-align: left;
+      font-family: var(--font-sans);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    tbody tr { border-bottom: 1px solid var(--rule); }
+    tbody tr:nth-child(even) { background: var(--cell-bg); }
+    tbody tr:hover { background: #e9e4da; }
+
+    td {
+      padding: 9px 14px;
+      vertical-align: top;
+    }
+
+    td code, th code {
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      font-size: 12px;
+      background: rgba(0,0,0,.07);
+      padding: 1px 5px;
+      border-radius: 3px;
+    }
+
+    /* ── SLIDE TYPE SUBSECTIONS ── */
+    .slide-section {
+      margin-bottom: 44px;
+      padding-bottom: 36px;
+      border-bottom: 1px solid var(--rule);
+      scroll-margin-top: calc(var(--topnav-h) + 16px);
+    }
+
+    .slide-section:last-child { border-bottom: none; }
+
+    .slide-section h3 {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      font-family: var(--font-sans);
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--near-blk);
+      margin: 0 0 16px;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+
+    .type-note {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--muted);
+      letter-spacing: .04em;
+      text-transform: none;
+    }
+
+    dl.spec-dl dt {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--accent-dk);
+      margin: 14px 0 5px;
+    }
+
+    dl.spec-dl dd {
+      margin-left: 0;
+      padding-left: 14px;
+      border-left: 3px solid var(--accent);
+      font-size: 13.5px;
+      line-height: 1.65;
+      color: var(--body-txt);
+    }
+
+    dl.spec-dl dd code {
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      font-size: 12px;
+      background: rgba(0,0,0,.07);
+      padding: 1px 5px;
+      border-radius: 3px;
+    }
+
+    /* ── UPDATE PROCEDURE ── */
+    .flow-steps {
+      list-style: none;
+      counter-reset: step;
+      padding-left: 0;
+    }
+
+    .flow-steps li {
+      counter-increment: step;
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      padding: 7px 0;
+      border-bottom: 1px solid var(--rule);
+      font-size: 14px;
+    }
+
+    .flow-steps li::before {
+      content: counter(step);
+      min-width: 24px;
+      height: 24px;
+      background: var(--accent);
+      color: var(--near-blk);
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .callout {
+      background: var(--cell-bg);
+      border-left: 3px solid var(--accent-dk);
+      padding: 12px 16px;
+      margin: 16px 0;
+      font-size: 13.5px;
+      color: var(--near-blk);
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      margin-top: 80px;
+      padding-top: 24px;
+      border-top: 1px solid var(--rule);
+      font-size: 12px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+
+<div class="topnav">
+  <a href="index.html">Overview</a>
+  <span class="tn-sep">/</span>
+  <a href="architecture.html">Architecture</a>
+  <span class="tn-sep">/</span>
+  <a href="roadmap.html">Roadmap</a>
+  <span class="tn-sep">/</span>
+  <a href="design-system.html" class="tn-active">Design System</a>
+  <span class="tn-sep">/</span>
+  <a href="writer-contract.html">Writer Contract</a>
+  <span class="tn-sep">/</span>
+  <a href="runbook.html">Runbook</a>
+</div>
+
+<nav>
+  <div class="wordmark">The Frameshift</div>
+  <div class="sub">Design System</div>
+  <ul>
+    <li><a href="#overview">Overview</a></li>
+    <li><a href="#colours">Colours</a></li>
+    <li><a href="#typography">Typography</a></li>
+    <hr class="nav-sep">
+    <li><a href="#slide-types">Slide Types</a></li>
+    <li class="nav-sub"><a href="#slide-cover">Cover</a></li>
+    <li class="nav-sub"><a href="#slide-stat">Stat</a></li>
+    <li class="nav-sub"><a href="#slide-quote">Quote</a></li>
+    <li class="nav-sub"><a href="#slide-context">Context</a></li>
+    <li class="nav-sub"><a href="#slide-contrast">Contrast</a></li>
+    <li class="nav-sub"><a href="#slide-timeline">Timeline</a></li>
+    <li class="nav-sub"><a href="#slide-explainer">Explainer</a></li>
+    <li class="nav-sub"><a href="#slide-signal">Signal</a></li>
+    <li class="nav-sub"><a href="#slide-cta">CTA</a></li>
+    <hr class="nav-sep">
+    <li><a href="#spacing">Spacing</a></li>
+    <li><a href="#update-baselines">Updating Baselines</a></li>
+  </ul>
+</nav>
+
+<main>
+  <header class="page-header">
+    <h1>Frameshift v2 — Design System</h1>
+    <div class="meta">Last updated: 2026-06-11 &nbsp;·&nbsp; @ai.xr.frameshift &nbsp;·&nbsp; renderer.py is source of truth</div>
+  </header>
+
+  <!-- ── OVERVIEW ── -->
+  <section id="overview">
+    <h2>Overview</h2>
+    <p>
+      <strong>Brand:</strong> The Frameshift &nbsp;/&nbsp; <code>@ai.xr.frameshift</code><br>
+      <strong>Built by:</strong> Snow Abad
+    </p>
+    <p>
+      All pixel values are at <strong>1080&times;1350px</strong> (4:5 ratio), which is 3&times; scale
+      from the 360&times;450 mockup. Font files live at <code>watcher/fonts/</code>.
+      <code>watcher/renderer.py</code> is the implementation source of truth.
+      <code>watcher/design_constants.py</code> is the conceptual spec and writer schema reference.
+    </p>
+    <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr><th>Property</th><th>Value</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Canvas</td><td>1080 &times; 1350 px (4:5)</td></tr>
+        <tr><td>Scale from mockup</td><td>3&times; (mockup was 360 &times; 450)</td></tr>
+        <tr><td>Output format</td><td>PNG, quality=95</td></tr>
+        <tr><td>Serif font</td><td>EB Garamond (Regular, Italic, Bold); DejaVu fallback</td></tr>
+        <tr><td>Sans font</td><td>DM Sans (Regular, Medium, Bold); DejaVu fallback</td></tr>
+        <tr><td>Slide count</td><td>4–8 per carousel (cover + 2–6 middle + cta)</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </section>
+
+  <!-- ── COLOURS ── -->
+  <section id="colours">
+    <h2>Colours</h2>
+    <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr><th>Name</th><th>Hex</th><th>Used for</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><div style="display:inline-block;width:16px;height:16px;background:#000000;border-radius:2px;border:1px solid rgba(255,255,255,.2);vertical-align:middle;margin-right:8px;"></div>BLACK</td>
+          <td><code>#000000</code></td>
+          <td>CTA slide background</td>
+        </tr>
+        <tr>
+          <td><div style="display:inline-block;width:16px;height:16px;background:#0d0d0d;border-radius:2px;border:1px solid rgba(255,255,255,.2);vertical-align:middle;margin-right:8px;"></div>NEAR_BLACK</td>
+          <td><code>#0d0d0d</code></td>
+          <td>Cover overlay base; Contrast cell A background; primary heading text</td>
+        </tr>
+        <tr>
+          <td><div style="display:inline-block;width:16px;height:16px;background:#f7f4ef;border-radius:2px;border:1px solid rgba(0,0,0,.15);vertical-align:middle;margin-right:8px;"></div>OFF_WHITE</td>
+          <td><code>#f7f4ef</code></td>
+          <td>All content slide backgrounds (stat, quote, context, contrast, timeline, explainer, signal)</td>
+        </tr>
+        <tr>
+          <td><div style="display:inline-block;width:16px;height:16px;background:#ffffff;border-radius:2px;border:1px solid rgba(0,0,0,.15);vertical-align:middle;margin-right:8px;"></div>WHITE</td>
+          <td><code>#ffffff</code></td>
+          <td>Text on dark backgrounds (cover headline, category pill text)</td>
+        </tr>
+        <tr>
+          <td><div style="display:inline-block;width:16px;height:16px;background:#b8a9d9;border-radius:2px;vertical-align:middle;margin-right:8px;"></div>ACCENT</td>
+          <td><code>#b8a9d9</code></td>
+          <td>Cover bottom rule + arrow; stat bottom bar; quote left accent line; timeline connector dots; numbered-step badges</td>
+        </tr>
+        <tr>
+          <td><div style="display:inline-block;width:16px;height:16px;background:#7a6aaa;border-radius:2px;vertical-align:middle;margin-right:8px;"></div>ACCENT_DARK</td>
+          <td><code>#7a6aaa</code></td>
+          <td>Context kicker; signal kicker; timeline last dot; signal tag text; nav active links</td>
+        </tr>
+        <tr>
+          <td><div style="display:inline-block;width:16px;height:16px;background:#e8e3da;border-radius:2px;border:1px solid rgba(0,0,0,.1);vertical-align:middle;margin-right:8px;"></div>RULE_COLOR</td>
+          <td><code>#e8e3da</code></td>
+          <td>Header hairline rule; explainer divider; timeline connector line</td>
+        </tr>
+        <tr>
+          <td><div style="display:inline-block;width:16px;height:16px;background:#555555;border-radius:2px;vertical-align:middle;margin-right:8px;"></div>BODY</td>
+          <td><code>#555555</code></td>
+          <td>Body copy on content slides</td>
+        </tr>
+        <tr>
+          <td><div style="display:inline-block;width:16px;height:16px;background:#1a1a1a;border-radius:2px;vertical-align:middle;margin-right:8px;"></div>DARK</td>
+          <td><code>#1a1a1a</code></td>
+          <td>Quote text; timeline event text</td>
+        </tr>
+        <tr>
+          <td><div style="display:inline-block;width:16px;height:16px;background:#999999;border-radius:2px;vertical-align:middle;margin-right:8px;"></div>MUTED</td>
+          <td><code>#999999</code></td>
+          <td>Stat unit; quote attribution; CTA handle</td>
+        </tr>
+        <tr>
+          <td><div style="display:inline-block;width:16px;height:16px;background:#bbbbbb;border-radius:2px;vertical-align:middle;margin-right:8px;"></div>LABEL</td>
+          <td><code>#bbbbbb</code></td>
+          <td>Eyebrow / kicker labels (non-accent slides: stat, contrast, timeline, explainer)</td>
+        </tr>
+        <tr>
+          <td><div style="display:inline-block;width:16px;height:16px;background:#cccccc;border-radius:2px;vertical-align:middle;margin-right:8px;"></div>DIM</td>
+          <td><code>#cccccc</code></td>
+          <td>Content slide wordmark ("The Frameshift" header)</td>
+        </tr>
+        <tr>
+          <td><div style="display:inline-block;width:16px;height:16px;background:#0d0d0d;border-radius:2px;border:1px solid rgba(255,255,255,.2);vertical-align:middle;margin-right:8px;"></div>CONTRAST_A</td>
+          <td><code>#0d0d0d</code></td>
+          <td>Contrast cell A background (dark side)</td>
+        </tr>
+        <tr>
+          <td><div style="display:inline-block;width:16px;height:16px;background:#eee8e0;border-radius:2px;border:1px solid rgba(0,0,0,.1);vertical-align:middle;margin-right:8px;"></div>CONTRAST_B</td>
+          <td><code>#eee8e0</code></td>
+          <td>Contrast cell B background (light side)</td>
+        </tr>
+        <tr>
+          <td><div style="display:inline-block;width:16px;height:16px;background:#ddd7cc;border-radius:2px;vertical-align:middle;margin-right:8px;"></div>CONTRAST_B_BORDER</td>
+          <td><code>#ddd7cc</code></td>
+          <td>Contrast cell B border (2px)</td>
+        </tr>
+        <tr>
+          <td><div style="display:inline-block;width:16px;height:16px;background:#ede8f5;border-radius:2px;border:1px solid rgba(0,0,0,.08);vertical-align:middle;margin-right:8px;"></div>SIGNAL_TAG_BG</td>
+          <td><code>#ede8f5</code></td>
+          <td>Signal tag pill background</td>
+        </tr>
+        <tr>
+          <td><div style="display:inline-block;width:16px;height:16px;background:#d0c4e8;border-radius:2px;vertical-align:middle;margin-right:8px;"></div>SIGNAL_TAG_BORDER</td>
+          <td><code>#d0c4e8</code></td>
+          <td>Signal tag pill border (2px)</td>
+        </tr>
+        <tr>
+          <td><div style="display:inline-block;width:16px;height:16px;background:#e8e0f0;border-radius:2px;border:1px solid rgba(0,0,0,.08);vertical-align:middle;margin-right:8px;"></div>QUOTE_MARK_COLOR</td>
+          <td><code>#e8e0f0</code></td>
+          <td>Decorative opening quote mark (large, EB Garamond, 210px)</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </section>
+
+  <!-- ── TYPOGRAPHY ── -->
+  <section id="typography">
+    <h2>Typography</h2>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:14px;">
+      All sizes from <code>renderer.py</code> (source of truth). <code>design_constants.py</code>
+      Type class has some historical differences and is kept as a conceptual reference.
+    </p>
+    <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr><th>Role</th><th>Font</th><th>Size (px)</th><th>Weight</th><th>Used on</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Cover wordmark</td>
+          <td>DM Sans</td>
+          <td>45</td>
+          <td>Bold</td>
+          <td>Cover</td>
+        </tr>
+        <tr>
+          <td>Cover headline</td>
+          <td>EB Garamond</td>
+          <td>96 → 54 (dynamic)</td>
+          <td>Regular</td>
+          <td>Cover — shrinks in 4px steps until block fits bottom third</td>
+        </tr>
+        <tr>
+          <td>Cover category pill</td>
+          <td>DM Sans</td>
+          <td>28</td>
+          <td>Medium</td>
+          <td>Cover</td>
+        </tr>
+        <tr>
+          <td>Content header wordmark</td>
+          <td>DM Sans</td>
+          <td>33</td>
+          <td>Bold</td>
+          <td>All content slides (DIM colour)</td>
+        </tr>
+        <tr>
+          <td>Eyebrow / kicker label</td>
+          <td>DM Sans</td>
+          <td>30</td>
+          <td>Bold</td>
+          <td>Stat, Context, Contrast, Timeline, Explainer, Signal</td>
+        </tr>
+        <tr>
+          <td>Stat number</td>
+          <td>EB Garamond</td>
+          <td>260</td>
+          <td>Bold</td>
+          <td>Stat</td>
+        </tr>
+        <tr>
+          <td>Stat unit</td>
+          <td>DM Sans</td>
+          <td>42</td>
+          <td>Regular</td>
+          <td>Stat (MUTED colour)</td>
+        </tr>
+        <tr>
+          <td>Stat context / Signal implication</td>
+          <td>DM Sans</td>
+          <td>45</td>
+          <td>Regular</td>
+          <td>Stat context, Signal implication (BODY colour)</td>
+        </tr>
+        <tr>
+          <td>Context / Explainer headline</td>
+          <td>EB Garamond</td>
+          <td>86</td>
+          <td>Regular</td>
+          <td>Context, Explainer</td>
+        </tr>
+        <tr>
+          <td>Context body / Timeline event</td>
+          <td>DM Sans</td>
+          <td>37</td>
+          <td>Regular</td>
+          <td>Context body, Timeline events (BODY colour)</td>
+        </tr>
+        <tr>
+          <td>Decorative quote mark</td>
+          <td>EB Garamond</td>
+          <td>210</td>
+          <td>Regular</td>
+          <td>Quote (QUOTE_MARK_COLOR — purely decorative)</td>
+        </tr>
+        <tr>
+          <td>Quote text</td>
+          <td>EB Garamond</td>
+          <td>96</td>
+          <td>Italic</td>
+          <td>Quote (DARK colour)</td>
+        </tr>
+        <tr>
+          <td>Attribution</td>
+          <td>DM Sans</td>
+          <td>42</td>
+          <td>Medium</td>
+          <td>Quote (MUTED colour)</td>
+        </tr>
+        <tr>
+          <td>Contrast label</td>
+          <td>DM Sans</td>
+          <td>27</td>
+          <td>Bold</td>
+          <td>Contrast cell labels (uppercase)</td>
+        </tr>
+        <tr>
+          <td>Contrast value</td>
+          <td>EB Garamond</td>
+          <td>54</td>
+          <td>Regular</td>
+          <td>Contrast cell values</td>
+        </tr>
+        <tr>
+          <td>Explainer answer / Contrast takeaway</td>
+          <td>DM Sans</td>
+          <td>42</td>
+          <td>Regular</td>
+          <td>Explainer answer, Contrast takeaway</td>
+        </tr>
+        <tr>
+          <td>Signal headline</td>
+          <td>EB Garamond</td>
+          <td>126</td>
+          <td>Regular</td>
+          <td>Signal</td>
+        </tr>
+        <tr>
+          <td>Signal tag / pill</td>
+          <td>DM Sans</td>
+          <td>30</td>
+          <td>Bold</td>
+          <td>Signal tag; Cover category pill label</td>
+        </tr>
+        <tr>
+          <td>CTA handle</td>
+          <td>DM Sans</td>
+          <td>33</td>
+          <td>Regular</td>
+          <td>CTA (muted grey — "@ai.xr.frameshift")</td>
+        </tr>
+        <tr>
+          <td>CTA headline</td>
+          <td>EB Garamond</td>
+          <td>102</td>
+          <td>Bold</td>
+          <td>CTA (centered, WHITE)</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </section>
+
+  <!-- ── SLIDE TYPES ── -->
+  <section id="slide-types">
+    <h2>Slide Types</h2>
+    <p>
+      Nine slide types total. <strong>Cover</strong> (always first) and <strong>CTA</strong>
+      (always last) are fixed. The writer selects 2–6 middle slides from the remaining seven.
+      Each subsection below documents when to use the type, its required fields, word limits,
+      and layout on the 1080&times;1350 canvas.
+    </p>
+
+    <!-- cover -->
+    <div class="slide-section" id="slide-cover">
+      <h3>Cover <span class="type-note">fixed — always first</span></h3>
+      <dl class="spec-dl">
+        <dt>When to use</dt>
+        <dd>Always present. Sets story context and brand. Image-first.</dd>
+
+        <dt>Required fields</dt>
+        <dd><code>headline</code> &nbsp;&middot;&nbsp; <code>category</code> &nbsp;&middot;&nbsp; <code>image_query</code></dd>
+
+        <dt>Word limits</dt>
+        <dd>headline: max 12 words &nbsp;&middot;&nbsp; category: max 4 words (shown in uppercase) &nbsp;&middot;&nbsp; image_query: 5–8 words (OG scrape search or FLUX prompt)</dd>
+
+        <dt>Layout</dt>
+        <dd>
+          NEAR_BLACK background with bottom-heavy gradient overlay (38→217 alpha, t^1.6 curve).
+          Full-bleed cover image pasted first if <code>image_obj</code> provided; dark solid otherwise.
+          Wordmark "The Frameshift" top-left at (66, 66), DM Sans Bold 45px, WHITE.
+          Headline in bottom third: EB Garamond Regular, starts at 96px, shrinks in 4px steps
+          until block fits ~330px zone; left-aligned from x=66.
+          Category pill below headline: DM Sans Medium 28px, rounded border in lavender.
+          Accent rule with right-pointing arrow at y = H&minus;66, full width.
+        </dd>
+      </dl>
+    </div>
+
+    <!-- stat -->
+    <div class="slide-section" id="slide-stat">
+      <h3>Stat <span class="type-note">single number that reframes the story</span></h3>
+      <dl class="spec-dl">
+        <dt>When to use</dt>
+        <dd>Use when one number changes how the reader sees everything else. Not for generic stats.</dd>
+
+        <dt>Required fields</dt>
+        <dd><code>eyebrow</code> &nbsp;&middot;&nbsp; <code>number</code> &nbsp;&middot;&nbsp; <code>unit</code> &nbsp;&middot;&nbsp; <code>context</code></dd>
+
+        <dt>Word limits</dt>
+        <dd>eyebrow: max 4 words &nbsp;&middot;&nbsp; number: e.g. "$14B" or "73%" (min 1 char) &nbsp;&middot;&nbsp; unit: max 8 words &nbsp;&middot;&nbsp; context: max 35 words</dd>
+
+        <dt>Layout</dt>
+        <dd>
+          OFF_WHITE background. Content header (wordmark + rule at y=115).
+          Eyebrow (DM Sans Bold 30px, LABEL) at y=165.
+          Giant number (EB Garamond Bold 260px, NEAR_BLACK) below eyebrow.
+          Unit (DM Sans Regular 42px, MUTED) below number.
+          Context body (DM Sans Regular 45px, BODY) below unit.
+          Bottom accent bar: 9px tall lavender strip pinned to bottom edge.
+        </dd>
+      </dl>
+    </div>
+
+    <!-- quote -->
+    <div class="slide-section" id="slide-quote">
+      <h3>Quote <span class="type-note">direct quote &gt; paraphrase</span></h3>
+      <dl class="spec-dl">
+        <dt>When to use</dt>
+        <dd>Use when a source's exact words carry more authority or impact than paraphrase.</dd>
+
+        <dt>Required fields</dt>
+        <dd><code>text</code> &nbsp;&middot;&nbsp; <code>attribution</code></dd>
+
+        <dt>Word limits</dt>
+        <dd>text: max 40 words &nbsp;&middot;&nbsp; attribution: free form — format: Name, Title — Organisation</dd>
+
+        <dt>Layout</dt>
+        <dd>
+          OFF_WHITE background. Content header.
+          Left accent line: x=66, top=204, bottom=H&minus;200, width=6px, ACCENT colour.
+          Decorative opening quote mark: EB Garamond Regular 210px, QUOTE_MARK_COLOR, at (102, 195) — purely decorative, not layout-bearing.
+          Quote text starts at y=310, inner_x=102: EB Garamond Italic 96px, DARK, wrapped to slide width minus padding.
+          Attribution (DM Sans Medium 42px, MUTED) below quote, same x.
+        </dd>
+      </dl>
+    </div>
+
+    <!-- context -->
+    <div class="slide-section" id="slide-context">
+      <h3>Context <span class="type-note">what happened + optional image</span></h3>
+      <dl class="spec-dl">
+        <dt>When to use</dt>
+        <dd>Use when the reader needs to know what happened before any analysis or implication lands.</dd>
+
+        <dt>Required fields</dt>
+        <dd><code>kicker</code> &nbsp;&middot;&nbsp; <code>headline</code> &nbsp;&middot;&nbsp; <code>body</code> &nbsp;&middot;&nbsp; <code>use_image</code></dd>
+
+        <dt>Word limits</dt>
+        <dd>kicker: max 3 words &nbsp;&middot;&nbsp; headline: max 15 words &nbsp;&middot;&nbsp; body: max 40 words &nbsp;&middot;&nbsp; use_image: boolean</dd>
+
+        <dt>Layout</dt>
+        <dd>
+          OFF_WHITE background. Content header.
+          Kicker (DM Sans Bold 30px, ACCENT_DARK, uppercase) at y=150.
+          Headline (EB Garamond Regular 86px, NEAR_BLACK) below kicker.
+          Image zone (408px tall, full width minus padding) only when <code>use_image=true</code>
+          AND <code>image_obj</code> is available — never shows a grey placeholder.
+          Body copy (DM Sans Regular 37px, BODY) below headline or image zone.
+        </dd>
+      </dl>
+    </div>
+
+    <!-- contrast -->
+    <div class="slide-section" id="slide-contrast">
+      <h3>Contrast <span class="type-note">two competing things as core tension</span></h3>
+      <dl class="spec-dl">
+        <dt>When to use</dt>
+        <dd>Use when the story is fundamentally about two opposing models, approaches, or positions.</dd>
+
+        <dt>Required fields</dt>
+        <dd><code>kicker</code> &nbsp;&middot;&nbsp; <code>label_a</code> &nbsp;&middot;&nbsp; <code>value_a</code> &nbsp;&middot;&nbsp; <code>label_b</code> &nbsp;&middot;&nbsp; <code>value_b</code> &nbsp;&middot;&nbsp; <code>takeaway</code></dd>
+
+        <dt>Word limits</dt>
+        <dd>kicker: max 3 words &nbsp;&middot;&nbsp; label_a/b: max 3 words &nbsp;&middot;&nbsp; value_a/b: max 20 words &nbsp;&middot;&nbsp; takeaway: max 25 words</dd>
+
+        <dt>Layout</dt>
+        <dd>
+          OFF_WHITE background. Content header.
+          Eyebrow (DM Sans Bold 30px, LABEL) at y=150.
+          Two side-by-side cells, each ~(W&minus;PAD&times;2&minus;24)/2 wide, 330px tall, y below eyebrow.
+          Cell A: CONTRAST_A (near-black) background, rounded 9px, no border; label DM Sans Bold 27px in #666, value EB Garamond Regular 54px in WHITE.
+          Cell B: CONTRAST_B background, CONTRAST_B_BORDER outline 2px, rounded 9px; label DM Sans Bold 27px in #bbb, value EB Garamond Regular 54px in NEAR_BLACK.
+          Takeaway (DM Sans Regular 42px, #444) below cells.
+        </dd>
+      </dl>
+    </div>
+
+    <!-- timeline -->
+    <div class="slide-section" id="slide-timeline">
+      <h3>Timeline <span class="type-note">sequence and momentum matter</span></h3>
+      <dl class="spec-dl">
+        <dt>When to use</dt>
+        <dd>Use when the order of events — and the momentum they create — is the story.</dd>
+
+        <dt>Required fields</dt>
+        <dd><code>kicker</code> &nbsp;&middot;&nbsp; <code>events</code> (array of <code>{date, event}</code>)</dd>
+
+        <dt>Word limits</dt>
+        <dd>kicker: max 3 words &nbsp;&middot;&nbsp; events[].date: free form (year or date string) &nbsp;&middot;&nbsp; events[].event: max 12 words</dd>
+
+        <dt>Layout</dt>
+        <dd>
+          OFF_WHITE background. Content header.
+          Kicker (DM Sans Bold 30px, LABEL) at y=150.
+          Events stacked vertically: dot at x=PAD+12, text at x=PAD+48.
+          Dot radius=12px; last event dot is NEAR_BLACK, earlier dots are ACCENT_DARK.
+          Date (DM Sans Bold 30px, same colour as dot) to the right of dot.
+          Event text (DM Sans Regular 37px, DARK) below date.
+          Connector line (RULE_COLOR, 3px) between events, from bottom of dot to below last event text.
+        </dd>
+      </dl>
+    </div>
+
+    <!-- explainer -->
+    <div class="slide-section" id="slide-explainer">
+      <h3>Explainer <span class="type-note">reader needs a concept before the point lands</span></h3>
+      <dl class="spec-dl">
+        <dt>When to use</dt>
+        <dd>Use when the reader needs a concept or term defined before the story's implication makes sense.</dd>
+
+        <dt>Required fields</dt>
+        <dd><code>kicker</code> &nbsp;&middot;&nbsp; <code>question</code> &nbsp;&middot;&nbsp; <code>answer</code></dd>
+
+        <dt>Word limits</dt>
+        <dd>kicker: max 3 words &nbsp;&middot;&nbsp; question: max 15 words &nbsp;&middot;&nbsp; answer: max 55 words</dd>
+
+        <dt>Layout</dt>
+        <dd>
+          OFF_WHITE background. Content header.
+          Kicker (DM Sans Bold 30px, LABEL) at y=150.
+          Question (EB Garamond Regular 86px, NEAR_BLACK) below kicker — same treatment as context headline.
+          Horizontal divider (RULE_COLOR, 3px) below question.
+          Answer (DM Sans Regular 42px, #3a3a3a) below divider. Any <code>**bold**</code> markers in the answer are stripped before rendering.
+        </dd>
+      </dl>
+    </div>
+
+    <!-- signal -->
+    <div class="slide-section" id="slide-signal">
+      <h3>Signal <span class="type-note">one forward-looking implication</span></h3>
+      <dl class="spec-dl">
+        <dt>When to use</dt>
+        <dd>Use for a single forward-looking implication — what this development means for the next 12–36 months.</dd>
+
+        <dt>Required fields</dt>
+        <dd><code>kicker</code> &nbsp;&middot;&nbsp; <code>headline</code> &nbsp;&middot;&nbsp; <code>implication</code> &nbsp;&middot;&nbsp; <code>tag</code></dd>
+
+        <dt>Word limits</dt>
+        <dd>kicker: max 3 words &nbsp;&middot;&nbsp; headline: max 15 words &nbsp;&middot;&nbsp; implication: max 45 words &nbsp;&middot;&nbsp; tag: max 4 words (min 1 char)</dd>
+
+        <dt>Layout</dt>
+        <dd>
+          OFF_WHITE background. Content header.
+          Kicker (DM Sans Bold 30px, ACCENT_DARK, uppercase) at y=150.
+          Headline (EB Garamond Regular 126px, NEAR_BLACK) — largest headline in the palette.
+          Implication (DM Sans Regular 45px, BODY) below headline.
+          Tag pill (SIGNAL_TAG_BG background, SIGNAL_TAG_BORDER outline, ACCENT_DARK text, DM Sans Bold 30px, radius=27px) below implication.
+        </dd>
+      </dl>
+    </div>
+
+    <!-- cta -->
+    <div class="slide-section" id="slide-cta">
+      <h3>CTA <span class="type-note">fixed — always last</span></h3>
+      <dl class="spec-dl">
+        <dt>When to use</dt>
+        <dd>Always present. Story-specific follow hook. Drives audience to follow the account.</dd>
+
+        <dt>Required fields</dt>
+        <dd><code>headline</code></dd>
+
+        <dt>Word limits</dt>
+        <dd>headline: max 20 words, story-specific (not generic) — min 10 chars</dd>
+
+        <dt>Layout</dt>
+        <dd>
+          Pure BLACK background. Fully centered layout.
+          Rule above handle: 240px wide, WHITE at 25% opacity, y = center_y&minus;180.
+          Handle "@ai.xr.frameshift": DM Sans Regular 33px, #737373, centered.
+          Headline: EB Garamond Bold 102px, WHITE, centered, multi-line wrapping to W&minus;PAD&times;3.
+          Headline block starts ~60px below center.
+        </dd>
+      </dl>
+    </div>
+
+  </section>
+
+  <!-- ── SPACING ── -->
+  <section id="spacing">
+    <h2>Spacing &amp; Layout Constants</h2>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:14px;">
+      Constants from <code>watcher/design_constants.py</code>. Where renderer.py uses a different
+      value, the renderer value is noted — renderer.py is authoritative.
+    </p>
+    <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr><th>Constant</th><th>Value (px)</th><th>Used for</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>PAD_H</code></td><td>66</td><td>Horizontal padding — left edge of all text on content slides</td></tr>
+        <tr><td><code>PAD_V</code></td><td>66 <span style="color:var(--muted);font-size:11px;">(renderer)</span></td><td>Approx. top padding on content slides — renderer uses 66, design_constants.py spec: 60</td></tr>
+        <tr><td><code>HEADER_H</code></td><td>115 <span style="color:var(--muted);font-size:11px;">(renderer)</span></td><td>Y position of hairline rule below header wordmark — renderer source of truth</td></tr>
+        <tr><td><code>RULE_THICKNESS</code></td><td>3</td><td>Width of header hairline rule and explainer divider</td></tr>
+        <tr><td><code>COVER_WORDMARK_X</code></td><td>66</td><td>Cover wordmark left edge</td></tr>
+        <tr><td><code>COVER_WORDMARK_Y</code></td><td>66</td><td>Cover wordmark top edge</td></tr>
+        <tr><td><code>COVER_BOTTOM_PAD</code></td><td>66</td><td>Distance from bottom edge to accent rule on cover</td></tr>
+        <tr><td><code>STAT_ACCENT_H</code></td><td>9</td><td>Stat slide bottom accent bar height</td></tr>
+        <tr><td><code>QUOTE_LINE_X</code></td><td>66</td><td>Quote left accent line X position (same as PAD_H)</td></tr>
+        <tr><td><code>QUOTE_LINE_W</code></td><td>6</td><td>Quote left accent line width</td></tr>
+        <tr><td><code>TIMELINE_DOT_R</code></td><td>12</td><td>Timeline event dot radius</td></tr>
+        <tr><td><code>CTA_RULE_W</code></td><td>240</td><td>Width of rule above "@ai.xr.frameshift" handle on CTA slide</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </section>
+
+  <!-- ── UPDATE BASELINES ── -->
+  <section id="update-baselines">
+    <h2>Updating Baselines</h2>
+    <p>
+      Regression baselines live at <code>tests/regression/baselines/</code> — one locked PNG per
+      slide type. They are pixel-compared on every test run. When a design change is intentional,
+      update the baselines before committing.
+    </p>
+
+    <div class="callout">
+      Regression tests will fail after any renderer or design_constants change until baselines
+      are updated. This is expected — it forces the change to be visible and deliberate.
+    </div>
+
+    <ol class="flow-steps">
+      <li>Edit <code>watcher/design_constants.py</code> if changing a design value</li>
+      <li>Edit <code>watcher/renderer.py</code> if changing layout or rendering logic</li>
+      <li>Run <code>make update-baselines</code> to regenerate all 9 baseline PNGs</li>
+      <li>Visually inspect the new baselines — open them in Finder or Preview</li>
+      <li>Run <code>make regression</code> and confirm all 18 tests pass</li>
+      <li>Commit <code>tests/regression/baselines/</code> alongside the code change</li>
+      <li>Update this document if any pixel value, colour, or font size changed</li>
+    </ol>
+  </section>
+
+  <footer>
+    Frameshift v2 &nbsp;·&nbsp; The Frameshift &nbsp;·&nbsp; @ai.xr.frameshift &nbsp;·&nbsp; Built by Snow Abad
+  </footer>
+</main>
+
+</body>
+</html>

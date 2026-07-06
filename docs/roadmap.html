@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="agent-context" content="Frameshift v2 roadmap. Phase status, build sequence, and decisions log.">
+  <title>Frameshift v2 — Roadmap</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #f7f4ef;
+      --accent:    #b8a9d9;
+      --accent-dk: #7a6aaa;
+      --near-blk:  #0d0d0d;
+      --body-txt:  #333333;
+      --muted:     #777777;
+      --rule:      #e0dbd2;
+      --cell-bg:   #eeeae3;
+      --nav-w:     220px;
+      --topnav-h:  44px;
+      --font-serif: 'EB Garamond', Georgia, serif;
+      --font-sans:  -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+
+      --shipped-bg:  #d4edda;
+      --shipped-fg:  #2d6a4f;
+      --next-bg:     #ede8f5;
+      --next-fg:     #7a6aaa;
+      --planned-bg:  #e8e3da;
+      --planned-fg:  #888888;
+      --cancelled-bg:#f5e8e8;
+      --cancelled-fg:#a04040;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--body-txt);
+      font-family: var(--font-sans);
+      font-size: 15px;
+      line-height: 1.65;
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* ── TOPNAV ── */
+    .topnav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: var(--topnav-h);
+      background: var(--near-blk);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 2px;
+      z-index: 200;
+    }
+
+    .topnav a, .topnav .tn-ghost {
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 3px;
+      white-space: nowrap;
+      letter-spacing: .03em;
+      text-decoration: none;
+    }
+
+    .topnav a { color: #999; transition: color .12s, background .12s; }
+    .topnav a:hover { color: #fff; background: rgba(255,255,255,.07); }
+    .topnav a.tn-active { color: var(--accent); }
+    .topnav .tn-ghost { color: #555; cursor: default; }
+    .topnav .tn-sep { color: #333; font-size: 11px; padding: 0 2px; user-select: none; }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed;
+      top: var(--topnav-h); left: 0;
+      width: var(--nav-w);
+      height: calc(100vh - var(--topnav-h));
+      padding: 36px 24px;
+      border-right: 1px solid var(--rule);
+      overflow-y: auto;
+      background: var(--bg);
+    }
+
+    nav .wordmark { font-family: var(--font-serif); font-size: 17px; font-weight: 600; color: var(--near-blk); margin-bottom: 6px; }
+    nav .sub { font-size: 11px; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; margin-bottom: 28px; }
+    nav ul { list-style: none; }
+    nav ul li { margin-bottom: 2px; }
+    nav ul li a { display: block; padding: 5px 10px; border-radius: 4px; font-size: 13px; color: var(--muted); text-decoration: none; transition: background .12s, color .12s; }
+    nav ul li a:hover { background: var(--cell-bg); color: var(--near-blk); }
+    nav .nav-sep { border: none; border-top: 1px solid var(--rule); margin: 14px 0; }
+    nav .nav-badge { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: middle; position: relative; top: -1px; }
+    .nb-shipped { background: var(--shipped-fg); }
+    .nb-next    { background: var(--accent); }
+    .nb-planned { background: var(--planned-fg); }
+
+    /* ── MAIN ── */
+    main { margin-left: var(--nav-w); margin-top: var(--topnav-h); padding: 60px 64px 100px; max-width: 960px; width: 100%; }
+
+    .page-header { margin-bottom: 48px; padding-bottom: 28px; border-bottom: 2px solid var(--accent); }
+    .page-header h1 { font-family: var(--font-serif); font-size: 38px; font-weight: 400; color: var(--near-blk); line-height: 1.2; margin-bottom: 10px; }
+    .page-header .meta { font-size: 12px; color: var(--muted); letter-spacing: .05em; text-transform: uppercase; }
+
+    section { margin-bottom: 56px; scroll-margin-top: calc(var(--topnav-h) + 16px); }
+    section h2 { font-family: var(--font-serif); font-size: 26px; font-weight: 400; color: var(--near-blk); margin-bottom: 18px; padding-bottom: 8px; border-bottom: 1px solid var(--rule); }
+    p { margin-bottom: 14px; }
+
+    /* ── STATUS BADGES ── */
+    [data-status] .status-badge { display: inline-block; padding: 2px 9px; border-radius: 3px; font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; white-space: nowrap; }
+    [data-status="shipped"]   .status-badge { background: var(--shipped-bg);   color: var(--shipped-fg);   }
+    [data-status="next"]      .status-badge { background: var(--next-bg);       color: var(--next-fg);      }
+    [data-status="planned"]   .status-badge { background: var(--planned-bg);    color: var(--planned-fg);   }
+    [data-status="cancelled"] .status-badge { background: var(--cancelled-bg);  color: var(--cancelled-fg); }
+
+    /* ── STATUS BOARD TABLE ── */
+    .tbl-wrap { overflow-x: auto; margin-bottom: 8px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    thead tr { background: var(--near-blk); color: #fff; }
+    thead th { padding: 10px 14px; text-align: left; font-size: 11px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; white-space: nowrap; }
+    tbody tr { border-bottom: 1px solid var(--rule); }
+    tbody tr:nth-child(even) { background: var(--cell-bg); }
+    tbody tr:hover { background: #e9e4da; }
+    tbody tr[data-status="shipped"] { opacity: .85; }
+    td { padding: 9px 14px; vertical-align: top; }
+    td code { font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; font-size: 12px; background: rgba(0,0,0,.07); padding: 1px 5px; border-radius: 3px; }
+    .phase-id { font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12px; font-weight: 700; color: var(--muted); white-space: nowrap; }
+
+    /* ── LEGEND ── */
+    .legend { display: flex; gap: 20px; margin-bottom: 18px; flex-wrap: wrap; }
+    .legend-item { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--muted); }
+
+    /* ── PHASE DETAIL SECTIONS ── */
+    .phase-section { border-left: 4px solid var(--rule); padding-left: 24px; margin-bottom: 40px; scroll-margin-top: calc(var(--topnav-h) + 16px); }
+    .phase-section[data-status="shipped"]   { border-left-color: var(--shipped-fg); }
+    .phase-section[data-status="next"]      { border-left-color: var(--accent);     }
+    .phase-section[data-status="planned"]   { border-left-color: var(--planned-fg); }
+    .phase-section[data-status="cancelled"] { border-left-color: var(--cancelled-fg); opacity: .7; }
+    .phase-section h3 { font-family: var(--font-serif); font-size: 22px; font-weight: 400; color: var(--near-blk); margin-bottom: 6px; display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+    .phase-section h4 { font-family: var(--font-sans); font-size: 13px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--accent-dk); margin: 20px 0 8px; }
+    .phase-section ul { margin: 0 0 14px 0; padding-left: 20px; }
+    .phase-section ul li { font-size: 14px; margin-bottom: 5px; line-height: 1.55; }
+    .phase-section p { font-size: 14px; margin-bottom: 10px; }
+    .phase-section .decision-block { background: var(--cell-bg); border-radius: 6px; padding: 14px 18px; margin-bottom: 14px; }
+    .phase-section .known-issue { background: #fdf3e4; border-left: 3px solid #e09b3d; padding: 10px 14px; border-radius: 0 4px 4px 0; font-size: 13px; margin-top: 10px; }
+    .phase-section .known-issue strong { color: #a06020; }
+
+    /* ── KEY FILE INDEX ── */
+    .file-index table { font-size: 13.5px; }
+
+    /* ── FOOTER ── */
+    footer { margin-top: 80px; padding-top: 24px; border-top: 1px solid var(--rule); font-size: 12px; color: var(--muted); }
+  </style>
+</head>
+<body>
+
+<div class="topnav">
+  <a href="index.html">Overview</a>
+  <span class="tn-sep">/</span>
+  <a href="architecture.html">Architecture</a>
+  <span class="tn-sep">/</span>
+  <a href="roadmap.html" class="tn-active">Roadmap</a>
+  <span class="tn-sep">/</span>
+  <a href="design-system.html">Design System</a>
+  <span class="tn-sep">/</span>
+  <a href="writer-contract.html">Writer Contract</a>
+  <span class="tn-sep">/</span>
+  <a href="runbook.html">Runbook</a>
+</div>
+
+<nav>
+  <div class="wordmark">The Frameshift</div>
+  <div class="sub">Roadmap</div>
+  <ul>
+    <li><a href="#status-board">Status Board</a></li>
+    <hr class="nav-sep">
+    <li><a href="#phase-0"><span class="nav-badge nb-shipped"></span>Phase 0 — Foundation</a></li>
+    <li><a href="#phase-1"><span class="nav-badge nb-shipped"></span>Phase 1 — On-demand</a></li>
+    <li><a href="#phase-2"><span class="nav-badge nb-shipped"></span>Phase 2 — Auto-daily</a></li>
+    <li><a href="#phase-3"><span class="nav-badge nb-shipped"></span>Phase 3 — Images</a></li>
+    <li><a href="#phase-4"><span class="nav-badge nb-shipped"></span>Phase 4 — Hardening</a></li>
+    <li><a href="#phase-5"><span class="nav-badge nb-shipped"></span>Phase 5 — Post-launch</a></li>
+    <hr class="nav-sep">
+    <li><a href="#file-index">File Index</a></li>
+    <li><a href="#principles">Principles</a></li>
+  </ul>
+</nav>
+
+<main>
+  <header class="page-header">
+    <h1>Frameshift v2 — Roadmap</h1>
+    <div class="meta">Last updated: 2026-06-13 — 1A–1H, 2A, 2B, 3A–3F, 4A–4B, 5A–5L shipped &nbsp;·&nbsp; @ai.xr.frameshift</div>
+  </header>
+
+  <!-- ── STATUS BOARD ── -->
+  <section id="status-board">
+    <h2>Status Board</h2>
+
+    <div class="legend">
+      <div class="legend-item"><span class="nav-badge nb-shipped" style="width:10px;height:10px;"></span> Shipped</div>
+      <div class="legend-item"><span class="nav-badge nb-planned" style="width:10px;height:10px;"></span> Planned</div>
+      <div class="legend-item"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--cancelled-fg);margin-right:7px;"></span> Cancelled</div>
+    </div>
+
+    <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr><th>Phase</th><th>What</th><th>Status</th><th>Shipped</th></tr>
+      </thead>
+      <tbody>
+        <tr data-status="shipped"><td class="phase-id">0A</td><td>Design system — 8 slide types approved, pixel spec locked</td><td><span class="status-badge">Shipped</span></td><td>2026-06-11</td></tr>
+        <tr data-status="shipped"><td class="phase-id">0B</td><td>renderer.py — all 8 slide types, Pillow PNG, 1080×1350</td><td><span class="status-badge">Shipped</span></td><td>2026-06-11</td></tr>
+        <tr data-status="shipped"><td class="phase-id">0C</td><td>design_constants.py — pixel spec, writer schema, prompt template</td><td><span class="status-badge">Shipped</span></td><td>2026-06-11</td></tr>
+        <tr data-status="shipped"><td class="phase-id">0D</td><td>writer.py — scrape + Groq → validated slide JSON</td><td><span class="status-badge">Shipped</span></td><td>2026-06-11</td></tr>
+        <tr data-status="shipped"><td class="phase-id">0E</td><td>Real fonts installed — EB Garamond + DM Sans</td><td><span class="status-badge">Shipped</span></td><td>2026-06-11</td></tr>
+        <tr data-status="shipped"><td class="phase-id">1A</td><td>delivery.py — Telegram media group sender</td><td><span class="status-badge">Shipped</span></td><td>2026-06-11</td></tr>
+        <tr data-status="shipped"><td class="phase-id">1B</td><td>On-demand flow — /carousel &lt;url&gt; bot command end-to-end</td><td><span class="status-badge">Shipped</span></td><td>2026-06-11</td></tr>
+        <tr data-status="shipped"><td class="phase-id">1C</td><td>Unit tests — test_renderer.py + test_writer_schema.py</td><td><span class="status-badge">Shipped</span></td><td>2026-06-11</td></tr>
+        <tr data-status="shipped"><td class="phase-id">1D</td><td>docs/architecture.html — stack, module map, data flow</td><td><span class="status-badge">Shipped</span></td><td>2026-06-11</td></tr>
+        <tr data-status="shipped"><td class="phase-id">1E</td><td>docs/roadmap.html — generated from ROADMAP.md</td><td><span class="status-badge">Shipped</span></td><td>2026-06-11</td></tr>
+        <tr data-status="shipped"><td class="phase-id">1F</td><td>docs/index.html — project overview, RL/CMS reference</td><td><span class="status-badge">Shipped</span></td><td>2026-06-11</td></tr>
+        <tr data-status="shipped"><td class="phase-id">1G</td><td>docs/context.md — agent context bootstrap</td><td><span class="status-badge">Shipped</span></td><td>2026-06-11</td></tr>
+        <tr data-status="shipped"><td class="phase-id">1H</td><td>PARKING_LOT.md — created, parked entries</td><td><span class="status-badge">Shipped</span></td><td>2026-06-11</td></tr>
+        <tr data-status="shipped"><td class="phase-id">2A</td><td>ingestion.py — Serper + RSS + News API source scoring</td><td><span class="status-badge">Shipped</span></td><td>2026-06-11</td></tr>
+        <tr data-status="shipped"><td class="phase-id">2B</td><td>Auto-daily flow — schedule + approval + batch delivery</td><td><span class="status-badge">Shipped</span></td><td>2026-06-11</td></tr>
+        <tr data-status="planned"><td class="phase-id">2C</td><td>Functional tests — test_full_pipeline.py + test_ground_or_abstain.py</td><td><span class="status-badge">Planned</span></td><td>—</td></tr>
+        <tr data-status="cancelled"><td class="phase-id">2D</td><td>docs/pipeline.html — superseded by architecture.html + runbook.html</td><td><span class="status-badge">Cancelled</span></td><td>—</td></tr>
+        <tr data-status="shipped"><td class="phase-id">3A</td><td>OG image scrape + FLUX fallback wired into renderer</td><td><span class="status-badge">Shipped</span></td><td>2026-06-11</td></tr>
+        <tr data-status="shipped"><td class="phase-id">3B</td><td>Cover slide with real images end-to-end</td><td><span class="status-badge">Shipped</span></td><td>2026-06-11</td></tr>
+        <tr data-status="shipped"><td class="phase-id">3C</td><td>Regression baselines locked (tests/regression/)</td><td><span class="status-badge">Shipped</span></td><td>2026-06-11</td></tr>
+        <tr data-status="shipped"><td class="phase-id">3D</td><td>docs/design-system.html + docs/writer-contract.html</td><td><span class="status-badge">Shipped</span></td><td>2026-06-11</td></tr>
+        <tr data-status="shipped"><td class="phase-id">3E</td><td>Scraper robustness — 7-strategy fallback chain + Jina Reader API</td><td><span class="status-badge">Shipped</span></td><td>2026-06-11</td></tr>
+        <tr data-status="shipped"><td class="phase-id">3F</td><td>Self-learning scrape reliability — feedback.py + scorer.py</td><td><span class="status-badge">Shipped</span></td><td>2026-06-11</td></tr>
+        <tr data-status="shipped"><td class="phase-id">4A</td><td>Hardening — smoke test (tests/smoke.py), 9/9 checks</td><td><span class="status-badge">Shipped</span></td><td>2026-06-11</td></tr>
+        <tr data-status="shipped"><td class="phase-id">4B</td><td>docs/runbook.html</td><td><span class="status-badge">Shipped</span></td><td>2026-06-11</td></tr>
+        <tr data-status="shipped"><td class="phase-id">5A</td><td>Logo feature — company logos on cover slides via logo_fetcher.py</td><td><span class="status-badge">Shipped</span></td><td>2026-06-13</td></tr>
+        <tr data-status="shipped"><td class="phase-id">5B</td><td>Pexels image fallback — OG → Pexels → FLUX → placeholder</td><td><span class="status-badge">Shipped</span></td><td>2026-06-13</td></tr>
+        <tr data-status="shipped"><td class="phase-id">5C</td><td>Source fallback on 403 — Serper searches alternative coverage before failing</td><td><span class="status-badge">Shipped</span></td><td>2026-06-13</td></tr>
+        <tr data-status="shipped"><td class="phase-id">5D</td><td>Body sanitization — prevents Groq 400 errors on malformed scraped content</td><td><span class="status-badge">Shipped</span></td><td>2026-06-13</td></tr>
+        <tr data-status="shipped"><td class="phase-id">5E</td><td>Serper date parser — "Jun 10, 2026" / "1 week ago" / "2 months ago" handled</td><td><span class="status-badge">Shipped</span></td><td>2026-06-13</td></tr>
+        <tr data-status="shipped"><td class="phase-id">5F</td><td>Story-level semantic dedup — fingerprint overlap prevents slot flooding</td><td><span class="status-badge">Shipped</span></td><td>2026-06-13</td></tr>
+        <tr data-status="shipped"><td class="phase-id">5G</td><td>LaunchAgent — bot persists across Mac sleep/reboot</td><td><span class="status-badge">Shipped</span></td><td>2026-06-13</td></tr>
+        <tr data-status="shipped"><td class="phase-id">5H</td><td>arXiv RSS URL fixed — rss.arxiv.org (old URL 302-redirected)</td><td><span class="status-badge">Shipped</span></td><td>2026-06-13</td></tr>
+        <tr data-status="shipped"><td class="phase-id">5I</td><td>DECISIONS.md — 13 ADRs, architecture decisions documented</td><td><span class="status-badge">Shipped</span></td><td>2026-06-13</td></tr>
+        <tr data-status="shipped"><td class="phase-id">5J</td><td>RUNLOG.md — operational history from day one</td><td><span class="status-badge">Shipped</span></td><td>2026-06-13</td></tr>
+        <tr data-status="shipped"><td class="phase-id">5K</td><td>~/shared/ ecosystem context bus — master-context, CIA/CCA scaffolded</td><td><span class="status-badge">Shipped</span></td><td>2026-06-13</td></tr>
+        <tr data-status="shipped"><td class="phase-id">5L</td><td>~/oneninefour/ standards — agent-patterns.md + PARKING_LOT.md</td><td><span class="status-badge">Shipped</span></td><td>2026-06-13</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </section>
+
+  <!-- ── PHASE DETAIL ── -->
+  <section id="phase-detail">
+    <h2>Phase Detail</h2>
+
+    <!-- PHASE 0 -->
+    <div class="phase-section" id="phase-0" data-status="shipped">
+      <h3>Phase 0 — Foundation <span class="status-badge">Shipped</span></h3>
+
+      <h4>0A — Design System</h4>
+      <p>Full slide palette designed as React artifact, approved by Snow. Cover template matched to existing brand sample. 8 slide types defined: cover (fixed), stat, quote, context, contrast, timeline, explainer, signal, cta (fixed). Lavender <code>#b8a9d9</code> accent, warm off-white <code>#f7f4ef</code> content slides, pure black <code>#000000</code> CTA.</p>
+      <div class="decision-block">
+        <strong>Key decisions:</strong>
+        <ul>
+          <li>Slide structure is instruction-driven, not hardcoded — LLM selects from palette based on story, 2–6 middle slides, ground-or-abstain enforced</li>
+          <li>Cover headline dynamically sized 96px→54px to fill bottom third of slide</li>
+          <li>Stat slide content top-anchored, accent bar pinned to bottom</li>
+          <li>Images only on cover (full-bleed) and context slides (optional zone)</li>
+        </ul>
+      </div>
+
+      <h4>0B — renderer.py</h4>
+      <p>Built: <code>watcher/renderer.py</code> — renders all 8 slide types to 1080×1350 PNG.</p>
+      <div class="decision-block">
+        <strong>Key decisions:</strong>
+        <ul>
+          <li>Font fallback: checks <code>fonts/</code> for EB Garamond + DM Sans, falls back to DejaVu if missing — pipeline never dies on missing fonts</li>
+          <li>Slide dispatch via <code>RENDERERS</code> dict — adding a new slide type is one function + one dict entry</li>
+          <li><code>render_carousel(slides_json)</code> is the single public interface</li>
+        </ul>
+      </div>
+
+      <h4>0C — design_constants.py</h4>
+      <p>Built: <code>watcher/design_constants.py</code> — single source of truth for all design values, writer schema, and prompt template.</p>
+
+      <h4>0D — writer.py</h4>
+      <p>Built: <code>watcher/writer.py</code> — scrape + Groq → validated slide JSON. LLM switched from Gemini (quota exhausted) to Groq llama-3.3-70b-versatile.</p>
+
+      <h4>0E — Real fonts</h4>
+      <p>EB Garamond (Regular, Italic, Bold) + DM Sans (Regular, Medium, Bold) installed at <code>~/frameshift_v2/fonts/</code>.</p>
+    </div>
+
+    <!-- PHASE 1 -->
+    <div class="phase-section" id="phase-1" data-status="shipped">
+      <h3>Phase 1 — On-demand flow <span class="status-badge">Shipped</span></h3>
+      <p>Full end-to-end on-demand carousel delivery via Telegram.</p>
+
+      <div class="decision-block">
+        <strong>Key decisions:</strong>
+        <ul>
+          <li>LLM switched from Gemini to Groq <code>llama-3.3-70b-versatile</code> — <code>llama-3.1-8b-instant</code> failed schema compliance</li>
+          <li>Schema enforcement: field names injected at call time via <code>_SCHEMA_ENFORCEMENT</code> block in <code>writer.py</code></li>
+          <li>Caption: generated by LLM as top-level field (3–4 sentences, max 60 words, third person, no brand mention)</li>
+          <li>Caption format: <code>{caption}\n\n{source_url}</code> attached to first slide only (Telegram media group behaviour)</li>
+          <li><code>stat.number</code> and <code>signal.tag</code> exempt from 3-char minimum validation</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- PHASE 2 -->
+    <div class="phase-section" id="phase-2" data-status="shipped">
+      <h3>Phase 2 — Auto-daily flow <span class="status-badge">Shipped</span> <small style="font-size:13px;color:var(--muted);">(2A/2B shipped — 2C planned — 2D cancelled)</small></h3>
+
+      <h4>2A — ingestion.py <span style="color:var(--shipped-fg);font-size:12px;">✅ Shipped 2026-06-11</span></h4>
+      <ul>
+        <li>Fetch: Serper (all topics) + RSS (8 feeds) + NewsAPI (top 3 topics)</li>
+        <li>Score: <code>recency_weight × source_tier × signal_strength</code></li>
+        <li>Output: ranked top-10 candidate list → Telegram + <code>store/candidates_{ts}.json</code></li>
+      </ul>
+      <div class="decision-block">
+        <strong>Key decisions:</strong>
+        <ul>
+          <li>Recency: exponential decay <code>0.5 ** (hours / 24)</code>, hard cutoff at 48h</li>
+          <li>Source tiers: A=8, B=6, C=4, D=2 from <code>sources.yaml</code></li>
+          <li>Signal strength: 1.0 base + 0.1 per title keyword match, max 1.5</li>
+          <li>Source diversity cap: max 3 items per source before top-10 slice</li>
+          <li>Domain blocklist: stocktwits, reddit, twitter, x.com, bluesky, inc.com, fastcompany.com</li>
+        </ul>
+      </div>
+
+      <h4>2B — Auto-daily flow <span style="color:var(--shipped-fg);font-size:12px;">✅ Shipped 2026-06-11</span></h4>
+      <ul>
+        <li>Scheduled run at 08:00 America/Toronto via APScheduler</li>
+        <li>Run ingestion, send candidate list to Telegram</li>
+        <li>Wait for approval reply: <code>ALL</code> / <code>1,3,5</code> / <code>SKIP</code></li>
+        <li>2-hour timeout on approval — skips run if no reply</li>
+        <li>Log run to <code>store/run_log.json</code></li>
+      </ul>
+
+      <h4>2C — Functional tests <span style="color:var(--planned-fg);font-size:12px;">Planned</span></h4>
+      <p>Deferred — write after real failure modes observed in production. See RUNLOG.md for candidates.</p>
+
+      <h4>2D — docs/pipeline.html <span style="color:var(--cancelled-fg);font-size:12px;">Cancelled</span></h4>
+      <p>Superseded by <code>architecture.html#pipeline-diagrams</code> and <code>runbook.html#daily-flow</code>.</p>
+    </div>
+
+    <!-- PHASE 3 -->
+    <div class="phase-section" id="phase-3" data-status="shipped">
+      <h3>Phase 3 — Images + Robustness <span class="status-badge">Shipped</span></h3>
+
+      <h4>3A — image_fetcher.py</h4>
+      <ul>
+        <li><code>fetch_og_image(url)</code> — GET OG image, validate ≥400×300px, convert RGB</li>
+        <li><code>fetch_flux_image(prompt)</code> — FLUX.1-schnell via HuggingFace router, rotates 3 HF keys on 429</li>
+        <li><code>get_cover_image(og_image_url, image_query)</code> — OG first, FLUX fallback, None if both fail</li>
+      </ul>
+
+      <h4>3B — Cover slide with real images</h4>
+      <ul>
+        <li><code>writer.generate()</code> returns <code>image_obj</code> (PIL Image) alongside slides JSON</li>
+        <li><code>render_carousel()</code> passes <code>image_obj</code> to both cover and context renderers</li>
+      </ul>
+
+      <div class="decision-block">
+        <strong>Key decisions:</strong>
+        <ul>
+          <li>OG image minimum size: 400×300px — smaller images rejected, FLUX used instead</li>
+          <li>Telegram media group hard cap: 10 slides max</li>
+          <li>Quote slide: 96px italic serif; Signal slide: headline 126px, implication 45px</li>
+          <li>Stat slide whitespace parked — body image scraping needed first (PARKING_LOT.md)</li>
+          <li>Curly quote bug: Claude Code inserted smart quotes — byte-replace all non-ASCII quotes</li>
+        </ul>
+      </div>
+
+      <h4>3E — Scraper robustness</h4>
+      <ul>
+        <li>Strategy chain: <code>&lt;p&gt; tags → &lt;article&gt; → content divs → &lt;main&gt; → largest div → mobile UA → Jina Reader API</code></li>
+        <li>HTTP 403 responses skip all HTML strategies and go directly to Jina</li>
+      </ul>
+
+      <h4>3F — Scrape reliability (feedback.py + scorer.py)</h4>
+      <ul>
+        <li>Reliability formula: <code>(attempts − failures) / attempts</code> — multiplier applied after 3+ attempts</li>
+        <li>Domains below 30% reliability flagged to stderr</li>
+        <li>Needs 30+ days of live data before multiplier has meaningful scoring effect</li>
+      </ul>
+
+      <h4>3C — Regression baselines</h4>
+      <p>9 baseline PNGs locked; 18 tests (9 dimension + 9 pixel-diff). Run: <code>make regression</code>.</p>
+
+      <h4>3D — docs/design-system.html + docs/writer-contract.html</h4>
+      <p>Full design token reference and LLM output contract; top nav updated across all 5 docs.</p>
+    </div>
+
+    <!-- PHASE 4 -->
+    <div class="phase-section" id="phase-4" data-status="shipped">
+      <h3>Phase 4 — Hardening <span class="status-badge">Shipped</span></h3>
+
+      <h4>4A — Smoke test (tests/smoke.py)</h4>
+      <ul>
+        <li>One live URL, no mocks, 9 checks, full pipeline end-to-end</li>
+        <li>Checks: scrape → write (Groq) → caption ≥50 words → slide structure → image type → render → PNG count → dimensions → Telegram delivery</li>
+        <li>Pass/fail in &lt;3 min. Run with <code>make smoke</code></li>
+      </ul>
+
+      <h4>4B — docs/runbook.html</h4>
+      <p>How to run, restart, debug, add a new slide type.</p>
+    </div>
+
+    <!-- PHASE 5 -->
+    <div class="phase-section" id="phase-5" data-status="shipped">
+      <h3>Phase 5 — Post-launch hardening <span class="status-badge">Shipped</span></h3>
+      <p>Ingestion reliability, image quality, scraper robustness, bot process management, ecosystem scaffolding.</p>
+
+      <h4>5A — Logo feature</h4>
+      <ul>
+        <li><code>watcher/logo_fetcher.py</code> — 28-company detection dict, Google S2 favicon API, local <code>assets/logos/</code> fallback</li>
+        <li><code>renderer.py</code> — logo paste above headline block on cover slide; 3× scaled, 85% opacity</li>
+        <li><code>writer.py</code> — <code>get_company_logo()</code> called in <code>generate()</code>, returned as <code>logo_obj</code></li>
+      </ul>
+      <div class="known-issue">
+        <strong>Known limitation:</strong> Google S2 returns favicons with white/grey backgrounds — local transparent PNGs in <code>assets/logos/</code> needed for priority companies (Anthropic, OpenAI, Meta, etc.)
+      </div>
+
+      <h4>5B — Pexels image fallback</h4>
+      <ul>
+        <li>Image chain: OG → Pexels → FLUX → dark placeholder</li>
+        <li><code>PEXELS_API_KEY</code> added to <code>.env</code>; portrait orientation filter</li>
+        <li>HF_API_KEY warning logged if all keys empty</li>
+      </ul>
+
+      <h4>5C — Source fallback on 403</h4>
+      <ul>
+        <li><code>_serper_alternative(headline)</code> searches TC/Verge/Wired/Ars for alternative coverage</li>
+        <li>On scrape failure, retries <code>writer.generate()</code> on alt URL before sending user-facing error</li>
+      </ul>
+
+      <h4>5D — Body sanitization</h4>
+      <ul>
+        <li><code>scrape()</code> sanitizes body before Groq: null bytes → control chars → UTF-8 round-trip → truncate 6000 chars</li>
+        <li>Fixes Groq 400 Bad Request on malformed scraped content</li>
+      </ul>
+
+      <h4>5E–5H — Ingestion + process fixes</h4>
+      <ul>
+        <li><strong>5E Serper dates:</strong> added week/month/month-name parser branches — "Jun 10, 2026" / "1 week ago" / "2 months ago" now correctly aged; stale stories no longer score as fresh</li>
+        <li><strong>5F Story dedup:</strong> semantic fingerprint (6 sorted key words, 4-word overlap threshold) — same story from multiple sources no longer fills top slots</li>
+        <li><strong>5G LaunchAgent:</strong> <code>com.frameshift.bot.plist</code> installed to <code>~/Library/LaunchAgents/</code>; KeepAlive=true; logs to <code>store/bot.log</code> + <code>store/bot.error.log</code></li>
+        <li><strong>5H arXiv URL:</strong> corrected to <code>rss.arxiv.org</code> — old <code>arxiv.org/rss</code> returned 302 that feedparser didn't follow</li>
+      </ul>
+
+      <h4>5I–5L — Ecosystem + docs</h4>
+      <ul>
+        <li><strong>5I DECISIONS.md:</strong> 13 ADRs extracted and documented — why, not just what</li>
+        <li><strong>5J RUNLOG.md:</strong> operational history from day one — first run, failures, fixes</li>
+        <li><strong>5K ~/shared/:</strong> ecosystem context bus — <code>master-context.md</code>, CIA/CCA context files, <code>ig_aitech_posts.md</code> performance log</li>
+        <li><strong>5L ~/oneninefour/:</strong> <code>agent-patterns.md</code> (5 patterns), ecosystem <code>PARKING_LOT.md</code> (8 entries)</li>
+      </ul>
+
+      <div class="decision-block">
+        <strong>Key decisions:</strong>
+        <ul>
+          <li>Serper dates all fell back to now() — "Jun 10, 2026" format not handled. Fixed with month-name parser branches and week/month relative handlers.</li>
+          <li>Story dedup was domain+title prefix only — same story from 3 sources filled top 3 slots. Fixed with semantic fingerprint; threshold=4 sufficient for same-day stories with shared vocabulary.</li>
+          <li>arXiv URL 302-redirected; feedparser never follows redirects — silent 0-item returns every run. Fixed by switching to <code>rss.arxiv.org</code> (returns 200 directly). arXiv 0 items on weekends is expected — no new submissions M–F deadline.</li>
+          <li>Bot was not persisting — manual terminal process dies on sleep/close. LaunchAgent with KeepAlive=true is the correct fix. Code changes now require <code>launchctl unload/load</code> cycle. See ADR-013.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── KEY FILE INDEX ── -->
+  <section id="file-index" class="file-index">
+    <h2>Key File Index</h2>
+    <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr><th>File</th><th>Purpose</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>watcher/design_constants.py</code></td><td>Pixel spec, colours, writer schema, prompt template</td></tr>
+        <tr><td><code>watcher/renderer.py</code></td><td>Pillow PNG renderer — 8 slide types. Stable, do not touch.</td></tr>
+        <tr><td><code>watcher/writer.py</code></td><td>scrape() + write() + generate(); 7-strategy scrape fallback + Jina Reader API</td></tr>
+        <tr><td><code>watcher/image_fetcher.py</code></td><td>OG image fetch → Pexels → FLUX fallback; rotates HF keys on 429</td></tr>
+        <tr><td><code>watcher/logo_fetcher.py</code></td><td>Company logo detection + fetch (28 companies, Google S2 favicon / local PNG fallback)</td></tr>
+        <tr><td><code>watcher/bot.py</code></td><td>Telegram bot — on-demand /carousel + auto-daily scheduler (APScheduler, 08:00 Toronto)</td></tr>
+        <tr><td><code>watcher/ingestion.py</code></td><td>Serper + RSS + NewsAPI fetching, scoring, dedup, Telegram send</td></tr>
+        <tr><td><code>watcher/scorer.py</code></td><td>Domain reliability scoring — load_weights(), save_weights(), score()</td></tr>
+        <tr><td><code>watcher/feedback.py</code></td><td>Scrape reliability tracking — logs attempts, updates domain_reliability in scoring_weights.json</td></tr>
+        <tr><td><code>watcher/delivery.py</code></td><td>Telegram media group sender</td></tr>
+        <tr><td><code>config/sources.yaml</code></td><td>RSS feeds, search topics, source tiers, scoring config, relevance keywords, blocklist</td></tr>
+        <tr><td><code>com.frameshift.bot.plist</code></td><td>LaunchAgent — bot process manager (install to ~/Library/LaunchAgents/)</td></tr>
+        <tr><td><code>fonts/</code></td><td>EB Garamond + DM Sans TTF files</td></tr>
+        <tr><td><code>store/</code></td><td>Flat JSON run logs, rendered output, candidates, bot.log</td></tr>
+        <tr><td><code>assets/logos/</code></td><td>Local transparent PNG logos for priority companies</td></tr>
+        <tr><td><code>.env</code></td><td>API keys: GROQ, TELEGRAM, HF_API_KEY(s), SERPER, NEWS_API_KEY, PEXELS_API_KEY</td></tr>
+        <tr><td><code>ROADMAP.md</code></td><td>This document (source)</td></tr>
+        <tr><td><code>DECISIONS.md</code></td><td>Architecture decision records — 13 ADRs</td></tr>
+        <tr><td><code>RUNLOG.md</code></td><td>Operational history — notable runs, failures, fixes</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </section>
+
+  <!-- ── PRINCIPLES ── -->
+  <section id="principles">
+    <h2>Architecture Principles</h2>
+    <dl style="margin-top:4px;">
+      <dt style="font-weight:700;font-size:14px;color:var(--near-blk);margin-top:18px;margin-bottom:4px;">No database</dt>
+      <dd style="margin-left:0;padding-left:16px;border-left:3px solid var(--accent);color:var(--body-txt);font-size:14px;line-height:1.6;">Flat JSON files only. Stories live as JSON per run, deleted after delivery.</dd>
+
+      <dt style="font-weight:700;font-size:14px;color:var(--near-blk);margin-top:18px;margin-bottom:4px;">Clean seams</dt>
+      <dd style="margin-left:0;padding-left:16px;border-left:3px solid var(--accent);color:var(--body-txt);font-size:14px;line-height:1.6;">Each module has one input type, one output type. Testable in isolation.</dd>
+
+      <dt style="font-weight:700;font-size:14px;color:var(--near-blk);margin-top:18px;margin-bottom:4px;">Ground or abstain</dt>
+      <dd style="margin-left:0;padding-left:16px;border-left:3px solid var(--accent);color:var(--body-txt);font-size:14px;line-height:1.6;">If source doesn't support a claim, omit the slide. Wired into prompt, not retrofitted.</dd>
+
+      <dt style="font-weight:700;font-size:14px;color:var(--near-blk);margin-top:18px;margin-bottom:4px;">Instruction-driven structure</dt>
+      <dd style="margin-left:0;padding-left:16px;border-left:3px solid var(--accent);color:var(--body-txt);font-size:14px;line-height:1.6;">Slide selection is a prompt, not code. Change behaviour by editing the prompt.</dd>
+
+      <dt style="font-weight:700;font-size:14px;color:var(--near-blk);margin-top:18px;margin-bottom:4px;">Fallback everywhere</dt>
+      <dd style="margin-left:0;padding-left:16px;border-left:3px solid var(--accent);color:var(--body-txt);font-size:14px;line-height:1.6;">Groq model fallback, font fallback, image fallback (OG → Pexels → FLUX → placeholder). Pipeline never dies silently.</dd>
+
+      <dt style="font-weight:700;font-size:14px;color:var(--near-blk);margin-top:18px;margin-bottom:4px;">Documentation ships with each phase, not after</dt>
+      <dd style="margin-left:0;padding-left:16px;border-left:3px solid var(--accent);color:var(--body-txt);font-size:14px;line-height:1.6;">tests/ and docs/ are built alongside features, never deferred.</dd>
+    </dl>
+  </section>
+
+  <footer>
+    Frameshift v2 &nbsp;·&nbsp; The Frameshift &nbsp;·&nbsp; @ai.xr.frameshift &nbsp;·&nbsp; Built by Snow Abad
+  </footer>
+</main>
+
+</body>
+</html>

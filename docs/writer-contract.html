@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="agent-context" content="Frameshift v2 writer contract. JSON schema per slide type, word limits, ground-or-abstain rules, Groq model config, caption requirements.">
+  <title>Frameshift v2 — Writer Contract</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #f7f4ef;
+      --accent:    #b8a9d9;
+      --accent-dk: #7a6aaa;
+      --near-blk:  #0d0d0d;
+      --body-txt:  #333333;
+      --muted:     #777777;
+      --rule:      #e0dbd2;
+      --cell-bg:   #eeeae3;
+      --nav-w:     220px;
+      --topnav-h:  44px;
+      --font-serif: 'EB Garamond', Georgia, serif;
+      --font-sans:  -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--body-txt);
+      font-family: var(--font-sans);
+      font-size: 15px;
+      line-height: 1.65;
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* ── TOPNAV ── */
+    .topnav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: var(--topnav-h);
+      background: var(--near-blk);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 2px;
+      z-index: 200;
+    }
+
+    .topnav a, .topnav .tn-ghost {
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 3px;
+      white-space: nowrap;
+      letter-spacing: .03em;
+      text-decoration: none;
+    }
+
+    .topnav a {
+      color: #999;
+      transition: color .12s, background .12s;
+    }
+
+    .topnav a:hover {
+      color: #fff;
+      background: rgba(255,255,255,.07);
+    }
+
+    .topnav a.tn-active {
+      color: var(--accent);
+    }
+
+    .topnav .tn-ghost {
+      color: #555;
+      cursor: default;
+    }
+
+    .topnav .tn-sep {
+      color: #333;
+      font-size: 11px;
+      padding: 0 2px;
+      user-select: none;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed;
+      top: var(--topnav-h); left: 0;
+      width: var(--nav-w);
+      height: calc(100vh - var(--topnav-h));
+      padding: 36px 24px;
+      border-right: 1px solid var(--rule);
+      overflow-y: auto;
+      background: var(--bg);
+    }
+
+    nav .wordmark {
+      font-family: var(--font-serif);
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--near-blk);
+      margin-bottom: 6px;
+    }
+
+    nav .sub {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      margin-bottom: 28px;
+    }
+
+    nav ul { list-style: none; }
+    nav ul li { margin-bottom: 2px; }
+
+    nav ul li a {
+      display: block;
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-size: 13px;
+      color: var(--muted);
+      text-decoration: none;
+      transition: background .12s, color .12s;
+    }
+
+    nav ul li a:hover {
+      background: var(--cell-bg);
+      color: var(--near-blk);
+    }
+
+    nav ul li a.active { color: var(--accent-dk); font-weight: 600; }
+
+    nav ul li.nav-sub a {
+      padding-left: 22px;
+      font-size: 12px;
+    }
+
+    nav .nav-sep {
+      border: none;
+      border-top: 1px solid var(--rule);
+      margin: 14px 0;
+    }
+
+    /* ── MAIN ── */
+    main {
+      margin-left: var(--nav-w);
+      margin-top: var(--topnav-h);
+      padding: 60px 64px 100px;
+      max-width: 900px;
+      width: 100%;
+    }
+
+    .page-header {
+      margin-bottom: 56px;
+      padding-bottom: 28px;
+      border-bottom: 2px solid var(--accent);
+    }
+
+    .page-header h1 {
+      font-family: var(--font-serif);
+      font-size: 38px;
+      font-weight: 400;
+      color: var(--near-blk);
+      line-height: 1.2;
+      margin-bottom: 10px;
+    }
+
+    .page-header .meta {
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+
+    /* ── SECTIONS ── */
+    section {
+      margin-bottom: 60px;
+      scroll-margin-top: calc(var(--topnav-h) + 16px);
+    }
+
+    section h2 {
+      font-family: var(--font-serif);
+      font-size: 26px;
+      font-weight: 400;
+      color: var(--near-blk);
+      margin-bottom: 18px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--rule);
+    }
+
+    p { margin-bottom: 14px; }
+
+    /* ── TABLES ── */
+    .tbl-wrap { overflow-x: auto; margin-bottom: 8px; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+    }
+
+    thead tr {
+      background: var(--near-blk);
+      color: #fff;
+    }
+
+    thead th {
+      padding: 10px 14px;
+      text-align: left;
+      font-family: var(--font-sans);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    tbody tr { border-bottom: 1px solid var(--rule); }
+    tbody tr:nth-child(even) { background: var(--cell-bg); }
+    tbody tr:hover { background: #e9e4da; }
+
+    td {
+      padding: 9px 14px;
+      vertical-align: top;
+    }
+
+    td code, th code {
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      font-size: 12px;
+      background: rgba(0,0,0,.07);
+      padding: 1px 5px;
+      border-radius: 3px;
+    }
+
+    /* ── CODE BLOCK ── */
+    pre {
+      background: var(--near-blk);
+      color: #c8c4bc;
+      padding: 18px 22px;
+      border-radius: 6px;
+      font-size: 12px;
+      line-height: 1.75;
+      overflow-x: auto;
+      margin: 14px 0 22px;
+    }
+
+    pre code {
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      background: transparent;
+      padding: 0;
+      border-radius: 0;
+      font-size: inherit;
+      color: inherit;
+    }
+
+    /* ── SLIDE SCHEMA SUBSECTIONS ── */
+    .schema-section {
+      margin-bottom: 44px;
+      padding-bottom: 36px;
+      border-bottom: 1px solid var(--rule);
+      scroll-margin-top: calc(var(--topnav-h) + 16px);
+    }
+
+    .schema-section:last-child { border-bottom: none; }
+
+    .schema-section h3 {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      font-family: var(--font-sans);
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--near-blk);
+      margin: 0 0 14px;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+
+    .type-note {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--muted);
+      letter-spacing: .04em;
+      text-transform: none;
+    }
+
+    /* ── FIELD BADGES ── */
+    .badge-req {
+      display: inline-block;
+      padding: 1px 6px;
+      border-radius: 3px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      background: #d4edda;
+      color: #2d6a4f;
+    }
+
+    .badge-opt {
+      display: inline-block;
+      padding: 1px 6px;
+      border-radius: 3px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      background: var(--cell-bg);
+      color: var(--muted);
+    }
+
+    /* ── RULE + EXAMPLE BLOCKS ── */
+    .rule-list {
+      list-style: none;
+      padding-left: 0;
+      margin: 0 0 16px;
+    }
+
+    .rule-list li {
+      padding: 7px 0 7px 20px;
+      border-bottom: 1px solid var(--rule);
+      font-size: 13.5px;
+      position: relative;
+    }
+
+    .rule-list li::before {
+      content: "—";
+      position: absolute;
+      left: 0;
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    .rule-list li:last-child { border-bottom: none; }
+
+    .example-block {
+      margin: 20px 0;
+    }
+
+    .example-block .ex-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .ex-correct { color: #2d6a4f; }
+    .ex-incorrect { color: #a63232; }
+
+    .ex-text {
+      background: var(--cell-bg);
+      border-left: 3px solid;
+      padding: 10px 14px;
+      font-size: 13.5px;
+      line-height: 1.6;
+      border-radius: 0 4px 4px 0;
+    }
+
+    .ex-text.correct { border-color: #2d6a4f; }
+    .ex-text.incorrect { border-color: #a63232; }
+
+    .callout {
+      background: var(--cell-bg);
+      border-left: 3px solid var(--accent-dk);
+      padding: 12px 16px;
+      margin: 16px 0;
+      font-size: 13.5px;
+      color: var(--near-blk);
+      line-height: 1.6;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      margin-top: 80px;
+      padding-top: 24px;
+      border-top: 1px solid var(--rule);
+      font-size: 12px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+
+<div class="topnav">
+  <a href="index.html">Overview</a>
+  <span class="tn-sep">/</span>
+  <a href="architecture.html">Architecture</a>
+  <span class="tn-sep">/</span>
+  <a href="roadmap.html">Roadmap</a>
+  <span class="tn-sep">/</span>
+  <a href="design-system.html">Design System</a>
+  <span class="tn-sep">/</span>
+  <a href="writer-contract.html" class="tn-active">Writer Contract</a>
+  <span class="tn-sep">/</span>
+  <a href="runbook.html">Runbook</a>
+</div>
+
+<nav>
+  <div class="wordmark">The Frameshift</div>
+  <div class="sub">Writer Contract</div>
+  <ul>
+    <li><a href="#overview">Overview</a></li>
+    <li><a href="#model-config">Model Config</a></li>
+    <li><a href="#output-schema">Output Schema</a></li>
+    <hr class="nav-sep">
+    <li><a href="#slide-schemas">Slide Schemas</a></li>
+    <li class="nav-sub"><a href="#schema-cover">Cover</a></li>
+    <li class="nav-sub"><a href="#schema-stat">Stat</a></li>
+    <li class="nav-sub"><a href="#schema-quote">Quote</a></li>
+    <li class="nav-sub"><a href="#schema-context">Context</a></li>
+    <li class="nav-sub"><a href="#schema-contrast">Contrast</a></li>
+    <li class="nav-sub"><a href="#schema-timeline">Timeline</a></li>
+    <li class="nav-sub"><a href="#schema-explainer">Explainer</a></li>
+    <li class="nav-sub"><a href="#schema-signal">Signal</a></li>
+    <li class="nav-sub"><a href="#schema-cta">CTA</a></li>
+    <hr class="nav-sep">
+    <li><a href="#slide-palette-rules">Palette Rules</a></li>
+    <li><a href="#validation-rules">Validation</a></li>
+    <li><a href="#ground-or-abstain">Ground or Abstain</a></li>
+    <li><a href="#caption-requirements">Caption</a></li>
+  </ul>
+</nav>
+
+<main>
+  <header class="page-header">
+    <h1>Frameshift v2 — Writer Contract</h1>
+    <div class="meta">Last updated: 2026-06-11 &nbsp;·&nbsp; @ai.xr.frameshift &nbsp;·&nbsp; writer.py + design_constants.py</div>
+  </header>
+
+  <!-- ── OVERVIEW ── -->
+  <section id="overview">
+    <h2>Overview</h2>
+    <p>
+      The writer takes an article URL and produces a structured JSON carousel.
+      This document is the contract — Groq must output exactly this structure or validation fails
+      and the pipeline raises a <code>ValueError</code>.
+    </p>
+    <p>
+      The contract lives in two places:
+    </p>
+    <ul style="margin: 0 0 14px 18px; font-size: 14px; line-height: 1.8;">
+      <li><code>watcher/design_constants.py</code> — <code>WRITER_SCHEMA</code> and <code>WRITER_PROMPT</code></li>
+      <li><code>watcher/writer.py</code> — <code>_SCHEMA_ENFORCEMENT</code> block injected at call time; <code>validate()</code> function</li>
+    </ul>
+    <p>
+      When the schema or prompt changes, update <code>design_constants.py</code> first, then
+      <code>writer.py</code>, then this document. Run <code>tests/unit/test_writer_schema.py</code>
+      to confirm validation still catches bad output.
+    </p>
+  </section>
+
+  <!-- ── MODEL CONFIG ── -->
+  <section id="model-config">
+    <h2>Model Config</h2>
+    <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr><th>Setting</th><th>Value</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Primary model</td>
+          <td><code>llama-3.3-70b-versatile</code> (Groq)</td>
+        </tr>
+        <tr>
+          <td>Fallback model</td>
+          <td><code>llama-3.1-70b-versatile</code> — triggered on 429 rate limit</td>
+        </tr>
+        <tr>
+          <td>Temperature</td>
+          <td>0.3 — low, for schema compliance and factual grounding</td>
+        </tr>
+        <tr>
+          <td>Max tokens</td>
+          <td>2000</td>
+        </tr>
+        <tr>
+          <td>Endpoint</td>
+          <td><code>https://api.groq.com/openai/v1/chat/completions</code></td>
+        </tr>
+        <tr>
+          <td>Fallback trigger</td>
+          <td>HTTP 429 — parses <code>retry-after</code> header; backs off then retries once</td>
+        </tr>
+        <tr>
+          <td>Output mode</td>
+          <td>Raw JSON string — no markdown fences, no preamble</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </section>
+
+  <!-- ── OUTPUT SCHEMA ── -->
+  <section id="output-schema">
+    <h2>Output Schema</h2>
+    <p>
+      The full top-level structure Groq must return. The <code>caption</code> field is a
+      top-level sibling of <code>slides</code>, not a slide type.
+    </p>
+<pre><code>{
+  "caption": "3-4 sentences summarising the story. Min 50 words. Third person,
+              factual, no hype. Lead with the most interesting fact. Do NOT
+              mention The Frameshift or @ai.xr.frameshift.",
+
+  "slides": [
+    {
+      "type": "cover",
+      "headline": "...",
+      "category": "...",
+      "image_query": "..."
+    },
+
+    // 2–6 middle slides — any combination from the palette
+    // (stat, quote, context, contrast, timeline, explainer, signal)
+    // Max 2 of any single type. Ground or abstain: no invented facts.
+
+    {
+      "type": "cta",
+      "headline": "..."
+    }
+  ]
+}</code></pre>
+  </section>
+
+  <!-- ── SLIDE SCHEMAS ── -->
+  <section id="slide-schemas">
+    <h2>Slide Schemas</h2>
+    <p>
+      Field names must match exactly — the validator checks keys, not just values.
+      All word limits are hard limits. <span class="badge-req">Required</span> fields
+      must be present and non-empty. <span class="badge-opt">Optional</span> fields
+      may be omitted or false.
+    </p>
+
+    <!-- cover -->
+    <div class="schema-section" id="schema-cover">
+      <h3>Cover <span class="type-note">always first</span></h3>
+      <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>Field</th><th>Type</th><th>Limit</th><th>Notes</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>headline</code> <span class="badge-req">req</span></td>
+            <td>string</td>
+            <td>max 12 words</td>
+            <td>Full-slide headline; renderer dynamic-sizes 96→54px to fit</td>
+          </tr>
+          <tr>
+            <td><code>category</code> <span class="badge-req">req</span></td>
+            <td>string</td>
+            <td>max 4 words</td>
+            <td>Shown as pill in uppercase; min 2 chars</td>
+          </tr>
+          <tr>
+            <td><code>image_query</code> <span class="badge-req">req</span></td>
+            <td>string</td>
+            <td>5–8 words</td>
+            <td>Used for OG image search or FLUX generation prompt</td>
+          </tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+
+    <!-- stat -->
+    <div class="schema-section" id="schema-stat">
+      <h3>Stat <span class="type-note">one number that reframes the story</span></h3>
+      <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>Field</th><th>Type</th><th>Limit</th><th>Notes</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>eyebrow</code> <span class="badge-req">req</span></td>
+            <td>string</td>
+            <td>max 4 words</td>
+            <td>Label above the number (e.g. "Market Signal")</td>
+          </tr>
+          <tr>
+            <td><code>number</code> <span class="badge-req">req</span></td>
+            <td>string</td>
+            <td>—</td>
+            <td>e.g. "$14B" or "73%"; min 1 char; rendered at 260px</td>
+          </tr>
+          <tr>
+            <td><code>unit</code> <span class="badge-req">req</span></td>
+            <td>string</td>
+            <td>max 8 words</td>
+            <td>Describes what the number measures; min 1 char</td>
+          </tr>
+          <tr>
+            <td><code>context</code> <span class="badge-req">req</span></td>
+            <td>string</td>
+            <td>max 35 words</td>
+            <td>One or two sentences adding meaning to the number</td>
+          </tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+
+    <!-- quote -->
+    <div class="schema-section" id="schema-quote">
+      <h3>Quote <span class="type-note">direct quote &gt; paraphrase</span></h3>
+      <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>Field</th><th>Type</th><th>Limit</th><th>Notes</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>text</code> <span class="badge-req">req</span></td>
+            <td>string</td>
+            <td>max 40 words</td>
+            <td>The direct quote; must be verbatim from the article</td>
+          </tr>
+          <tr>
+            <td><code>attribution</code> <span class="badge-req">req</span></td>
+            <td>string</td>
+            <td>—</td>
+            <td>Format: Name, Title — Organisation</td>
+          </tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+
+    <!-- context -->
+    <div class="schema-section" id="schema-context">
+      <h3>Context <span class="type-note">what happened + optional image</span></h3>
+      <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>Field</th><th>Type</th><th>Limit</th><th>Notes</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>kicker</code> <span class="badge-req">req</span></td>
+            <td>string</td>
+            <td>max 3 words</td>
+            <td>Short label above headline (e.g. "What happened")</td>
+          </tr>
+          <tr>
+            <td><code>headline</code> <span class="badge-req">req</span></td>
+            <td>string</td>
+            <td>max 15 words</td>
+            <td>What happened — rendered at 86px EB Garamond</td>
+          </tr>
+          <tr>
+            <td><code>body</code> <span class="badge-req">req</span></td>
+            <td>string</td>
+            <td>max 40 words</td>
+            <td>Supporting detail below headline or image</td>
+          </tr>
+          <tr>
+            <td><code>use_image</code> <span class="badge-opt">opt</span></td>
+            <td>boolean</td>
+            <td>—</td>
+            <td>Set <code>true</code> only when article image adds genuine value. Renderer shows image zone only if both <code>use_image=true</code> and <code>image_obj</code> is available — never a grey placeholder.</td>
+          </tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+
+    <!-- contrast -->
+    <div class="schema-section" id="schema-contrast">
+      <h3>Contrast <span class="type-note">two competing positions</span></h3>
+      <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>Field</th><th>Type</th><th>Limit</th><th>Notes</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>kicker</code> <span class="badge-req">req</span></td>
+            <td>string</td>
+            <td>max 3 words</td>
+            <td>Short label (e.g. "The divide")</td>
+          </tr>
+          <tr>
+            <td><code>label_a</code> <span class="badge-req">req</span></td>
+            <td>string</td>
+            <td>max 3 words</td>
+            <td>Dark cell label (e.g. "Old model")</td>
+          </tr>
+          <tr>
+            <td><code>value_a</code> <span class="badge-req">req</span></td>
+            <td>string</td>
+            <td>max 20 words</td>
+            <td>Dark cell value — displayed in WHITE EB Garamond 54px</td>
+          </tr>
+          <tr>
+            <td><code>label_b</code> <span class="badge-req">req</span></td>
+            <td>string</td>
+            <td>max 3 words</td>
+            <td>Light cell label</td>
+          </tr>
+          <tr>
+            <td><code>value_b</code> <span class="badge-req">req</span></td>
+            <td>string</td>
+            <td>max 20 words</td>
+            <td>Light cell value — displayed in NEAR_BLACK EB Garamond 54px</td>
+          </tr>
+          <tr>
+            <td><code>takeaway</code> <span class="badge-req">req</span></td>
+            <td>string</td>
+            <td>max 25 words</td>
+            <td>Single sentence below both cells synthesising the tension</td>
+          </tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+
+    <!-- timeline -->
+    <div class="schema-section" id="schema-timeline">
+      <h3>Timeline <span class="type-note">sequence and momentum</span></h3>
+      <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>Field</th><th>Type</th><th>Limit</th><th>Notes</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>kicker</code> <span class="badge-req">req</span></td>
+            <td>string</td>
+            <td>max 3 words</td>
+            <td>Short label (e.g. "How we got here")</td>
+          </tr>
+          <tr>
+            <td><code>events</code> <span class="badge-req">req</span></td>
+            <td>array</td>
+            <td>—</td>
+            <td>Ordered list of event objects; typically 3–5 items</td>
+          </tr>
+          <tr>
+            <td><code>events[].date</code> <span class="badge-req">req</span></td>
+            <td>string</td>
+            <td>—</td>
+            <td>Year or date string (e.g. "2023", "Q4 2024")</td>
+          </tr>
+          <tr>
+            <td><code>events[].event</code> <span class="badge-req">req</span></td>
+            <td>string</td>
+            <td>max 12 words</td>
+            <td>What happened at this point in the sequence</td>
+          </tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+
+    <!-- explainer -->
+    <div class="schema-section" id="schema-explainer">
+      <h3>Explainer <span class="type-note">reader needs a concept first</span></h3>
+      <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>Field</th><th>Type</th><th>Limit</th><th>Notes</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>kicker</code> <span class="badge-req">req</span></td>
+            <td>string</td>
+            <td>max 3 words</td>
+            <td>Short label (e.g. "Worth knowing")</td>
+          </tr>
+          <tr>
+            <td><code>question</code> <span class="badge-req">req</span></td>
+            <td>string</td>
+            <td>max 15 words</td>
+            <td>The concept as a question — rendered at 86px EB Garamond</td>
+          </tr>
+          <tr>
+            <td><code>answer</code> <span class="badge-req">req</span></td>
+            <td>string</td>
+            <td>max 55 words</td>
+            <td>Plain-language answer. Any <code>**bold**</code> markers are stripped before rendering.</td>
+          </tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+
+    <!-- signal -->
+    <div class="schema-section" id="schema-signal">
+      <h3>Signal <span class="type-note">one forward-looking implication</span></h3>
+      <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>Field</th><th>Type</th><th>Limit</th><th>Notes</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>kicker</code> <span class="badge-req">req</span></td>
+            <td>string</td>
+            <td>max 3 words</td>
+            <td>Short label (e.g. "What this means")</td>
+          </tr>
+          <tr>
+            <td><code>headline</code> <span class="badge-req">req</span></td>
+            <td>string</td>
+            <td>max 15 words</td>
+            <td>Forward-looking implication as a headline; rendered at 126px — the largest headline in the palette</td>
+          </tr>
+          <tr>
+            <td><code>implication</code> <span class="badge-req">req</span></td>
+            <td>string</td>
+            <td>max 45 words</td>
+            <td>Expanded explanation of the implication</td>
+          </tr>
+          <tr>
+            <td><code>tag</code> <span class="badge-req">req</span></td>
+            <td>string</td>
+            <td>max 4 words</td>
+            <td>Pill label shown below implication (e.g. "Watch this space"); min 1 char</td>
+          </tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+
+    <!-- cta -->
+    <div class="schema-section" id="schema-cta">
+      <h3>CTA <span class="type-note">always last</span></h3>
+      <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>Field</th><th>Type</th><th>Limit</th><th>Notes</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>headline</code> <span class="badge-req">req</span></td>
+            <td>string</td>
+            <td>max 20 words</td>
+            <td>Story-specific follow hook — not generic ("Follow for more"). Must give a reason to follow tied to this specific story. Min 10 chars.</td>
+          </tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ── PALETTE RULES ── -->
+  <section id="slide-palette-rules">
+    <h2>Slide Palette Rules</h2>
+    <p>Rules Groq must follow when selecting and ordering middle slides:</p>
+    <ul class="rule-list">
+      <li><strong>cover</strong> and <strong>cta</strong> are always present — fixed first and last, respectively</li>
+      <li>Choose <strong>2–6 middle slides</strong> from: stat, quote, context, contrast, timeline, explainer, signal</li>
+      <li><strong>Max 2 of any single slide type</strong> in one carousel</li>
+      <li><strong>Ground or abstain</strong>: every claim must come from the article text. If no stat exists, omit the stat slide. See <a href="#ground-or-abstain">Ground or Abstain</a>.</li>
+      <li><strong>stat</strong>: use when there is a single number that reframes the story</li>
+      <li><strong>quote</strong>: use when a direct quote carries more weight than paraphrase</li>
+      <li><strong>context</strong>: use when the reader needs to know what happened before anything else lands</li>
+      <li><strong>contrast</strong>: use when two competing things are the core tension of the story</li>
+      <li><strong>timeline</strong>: use when sequence and momentum matter — the order of events is the point</li>
+      <li><strong>explainer</strong>: use when the reader needs a concept explained before the implication makes sense</li>
+      <li><strong>signal</strong>: use for one forward-looking implication — what this means in the next 12–36 months</li>
+      <li>If the story is thin, <strong>2 middle slides is correct</strong> — do not pad to fill the maximum</li>
+      <li>Order slides in <strong>narrative order</strong>: context → what it means → what to watch, not arbitrary</li>
+    </ul>
+  </section>
+
+  <!-- ── VALIDATION RULES ── -->
+  <section id="validation-rules">
+    <h2>Validation Rules</h2>
+    <p>
+      Applied in <code>writer.py:validate()</code> after each Groq response. A <code>ValueError</code>
+      is raised on any failure — the pipeline does not silently accept invalid output.
+    </p>
+    <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr><th>Rule</th><th>Detail</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>First slide must be <code>cover</code></td>
+          <td><code>slides[0]["type"] == "cover"</code></td>
+        </tr>
+        <tr>
+          <td>Last slide must be <code>cta</code></td>
+          <td><code>slides[-1]["type"] == "cta"</code></td>
+        </tr>
+        <tr>
+          <td>2–6 middle slides</td>
+          <td>Total slides count: 4–8 (cover + 2–6 middle + cta)</td>
+        </tr>
+        <tr>
+          <td>All types must be known</td>
+          <td>Every <code>type</code> value must exist in <code>renderer.RENDERERS.keys()</code></td>
+        </tr>
+        <tr>
+          <td>All field names must match schema</td>
+          <td>Checked via <code>_SCHEMA_ENFORCEMENT</code> block injected into prompt; validator checks required keys present</td>
+        </tr>
+        <tr>
+          <td>Minimum field lengths</td>
+          <td><code>_FIELD_MIN</code> dict: <code>category</code> ≥ 2 chars; <code>number</code>, <code>tag</code>, <code>unit</code> ≥ 1 char</td>
+        </tr>
+        <tr>
+          <td><code>caption</code> minimum length</td>
+          <td>≥ 80 characters</td>
+        </tr>
+        <tr>
+          <td><code>cta.headline</code> minimum length</td>
+          <td>≥ 10 characters</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </section>
+
+  <!-- ── GROUND OR ABSTAIN ── -->
+  <section id="ground-or-abstain">
+    <h2>Ground or Abstain</h2>
+    <p>
+      Every claim in every slide must be grounded in the article text. If the article
+      does not contain the information needed for a slide type, that slide type must be
+      omitted — not invented, not approximated. This rule is wired into
+      <code>WRITER_PROMPT</code> in <code>design_constants.py</code>, not just documented here.
+    </p>
+
+    <div class="callout">
+      "Every claim must come from the article — ground or abstain."<br>
+      — from <code>WRITER_PROMPT</code>, RULES section
+    </div>
+
+    <div class="example-block">
+      <div class="ex-label ex-correct">Correct</div>
+      <div class="ex-text correct">
+        Article has no statistics. Writer selects 2 middle slides (context + signal) and omits the stat slide entirely.
+      </div>
+    </div>
+
+    <div class="example-block">
+      <div class="ex-label ex-incorrect">Incorrect</div>
+      <div class="ex-text incorrect">
+        Article mentions vague growth. Writer invents "$3B market by 2027" to fill a stat slide. This violates ground-or-abstain regardless of how plausible the number sounds.
+      </div>
+    </div>
+
+    <div class="example-block">
+      <div class="ex-label ex-correct">Correct</div>
+      <div class="ex-text correct">
+        Article has a direct quote. Writer uses it in a quote slide verbatim. Attribution matches the name and title given in the article.
+      </div>
+    </div>
+
+    <div class="example-block">
+      <div class="ex-label ex-incorrect">Incorrect</div>
+      <div class="ex-text incorrect">
+        Article paraphrases a source. Writer constructs a quote in first person that the source never said. This is fabrication — omit the quote slide and use context instead.
+      </div>
+    </div>
+
+    <p style="margin-top:16px;">
+      The rule applies to all fields: stat numbers, quote text, timeline dates, and signal
+      implications must all trace back to the article. Context can be inferred from the article's
+      framing, but must not introduce claims the article doesn't support.
+    </p>
+  </section>
+
+  <!-- ── CAPTION REQUIREMENTS ── -->
+  <section id="caption-requirements">
+    <h2>Caption Requirements</h2>
+    <p>
+      The <code>caption</code> field is a top-level sibling of <code>slides</code> — not a slide type.
+      It becomes the Instagram post caption, attached to the first slide of the media group.
+      Format in Telegram delivery: <code>{caption}\n\n{source_url}</code>.
+    </p>
+    <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr><th>Requirement</th><th>Detail</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Length</td><td>Exactly 3–4 sentences; minimum 50 words; minimum 80 characters</td></tr>
+        <tr><td>Lead sentence</td><td>Must open with the single most interesting or surprising fact from the article</td></tr>
+        <tr><td>Sentence 2–3</td><td>Explain why the fact matters — context or implication</td></tr>
+        <tr><td>Voice</td><td>Third person, factual, no hype. No exclamation marks.</td></tr>
+        <tr><td>Do NOT</td><td>Restate the carousel headline verbatim</td></tr>
+        <tr><td>Do NOT</td><td>Mention "The Frameshift" or "@ai.xr.frameshift"</td></tr>
+        <tr><td>Do NOT</td><td>Include hashtags — these are added separately if needed</td></tr>
+        <tr><td>Field name</td><td>Must be exactly <code>"caption"</code> — validated by name</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <div class="example-block" style="margin-top:20px;">
+      <div class="ex-label ex-correct">Example — good caption</div>
+      <div class="ex-text correct">
+        Asus and Xreal have shipped the first AR glasses built exclusively for gaming, running at 120Hz without a tethered phone.
+        The device marks the first time a major PC brand has co-designed AR hardware from the ground up, signalling a shift from general-purpose to use-case-first AR.
+        Every major display category — 4K, high-refresh monitors — found its mass market through gaming first; AR appears to be following the same path.
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    Frameshift v2 &nbsp;·&nbsp; The Frameshift &nbsp;·&nbsp; @ai.xr.frameshift &nbsp;·&nbsp; Built by Snow Abad
+  </footer>
+</main>
+
+</body>
+</html>

@@ -1,0 +1,105 @@
+# Frameshift v2 — source registry
+# Tier key: A=lab blogs, B=news wires, C=analysis, D=arXiv
+
+topics:
+  - query: "artificial intelligence OR AI agents OR LLM"
+    tier: A
+  - query: "augmented reality OR spatial computing OR AR glasses"
+    tier: A
+  - query: "hardware chips semiconductors"
+    tier: B
+  - query: "materials science breakthrough"
+    tier: B
+  - query: "venture capital AI investment"
+    tier: B
+  - query: "geopolitical technology policy"
+    tier: C
+
+rss_feeds:
+  - url: "https://huggingface.co/blog/feed.xml"
+    name: "HuggingFace Blog"
+    tier: A
+  - url: "https://rss.arxiv.org/rss/cs.AI"
+    name: "arXiv AI"
+    tier: C
+  - url: "https://www.uploadvr.com/feed/"
+    name: "UploadVR"
+    tier: B
+  - url: "https://www.roadtovr.com/feed/"
+    name: "Road to VR"
+    tier: B
+  - url: "https://techcrunch.com/feed/"
+    name: "TechCrunch"
+    tier: B
+  - url: "https://openai.com/blog/rss.xml"
+    name: "OpenAI Blog"
+    tier: A
+  - url: "https://blogs.microsoft.com/feed/"
+    name: "Microsoft Blog"
+    tier: B
+  - url: "https://blog.google/technology/ai/rss/"
+    name: "Google AI Blog"
+    tier: A
+
+source_tiers:
+  A: 8
+  B: 6
+  C: 4
+  D: 2
+
+scoring:
+  recency_halflife_hours: 24
+  max_age_hours: 48
+  signal_boost_keywords:
+    - "launch"
+    - "release"
+    - "raises"
+    - "acquires"
+    - "breakthrough"
+    - "first"
+    - "new model"
+    - "open source"
+
+relevance_keywords:
+  - "AI"
+  - "artificial intelligence"
+  - "machine learning"
+  - "LLM"
+  - "agent"
+  - "model"
+  - "AR"
+  - "augmented reality"
+  - "spatial computing"
+  - "XR"
+  - "VR headset"
+  - "mixed reality"
+  - "hardware"
+  - "chip"
+  - "semiconductor"
+  - "GPU"
+  - "quantum"
+  - "raises"
+  - "funding"
+  - "acquisition"
+  - "IPO"
+  - "investment"
+  - "robot"
+  - "autonomous"
+  - "drone"
+  - "energy"
+  - "materials"
+  - "breakthrough"
+  - "geopolit"
+  - "sanctions"
+  - "regulation"
+  - "policy"
+
+blocklist_domains:
+  - bsky.app
+  - bluesky.social
+  - stocktwits.com
+  - reddit.com
+  - twitter.com
+  - x.com
+  - inc.com
+  - fastcompany.com

@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="agent-context" content="Frameshift v2 runbook. How to start, stop, debug, and operate the system. Daily context update prompt. Test commands. Common failure modes and fixes.">
+  <title>Frameshift v2 — Runbook</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #f7f4ef;
+      --accent:    #b8a9d9;
+      --accent-dk: #7a6aaa;
+      --near-blk:  #0d0d0d;
+      --body-txt:  #333333;
+      --muted:     #777777;
+      --rule:      #e0dbd2;
+      --cell-bg:   #eeeae3;
+      --nav-w:     220px;
+      --topnav-h:  44px;
+      --font-serif: 'EB Garamond', Georgia, serif;
+      --font-sans:  -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--body-txt);
+      font-family: var(--font-sans);
+      font-size: 15px;
+      line-height: 1.65;
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* ── TOPNAV ── */
+    .topnav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: var(--topnav-h);
+      background: var(--near-blk);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 2px;
+      z-index: 200;
+    }
+
+    .topnav a, .topnav .tn-ghost {
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 3px;
+      white-space: nowrap;
+      letter-spacing: .03em;
+      text-decoration: none;
+    }
+
+    .topnav a { color: #999; transition: color .12s, background .12s; }
+    .topnav a:hover { color: #fff; background: rgba(255,255,255,.07); }
+    .topnav a.tn-active { color: var(--accent); }
+    .topnav .tn-ghost { color: #555; cursor: default; }
+    .topnav .tn-sep { color: #333; font-size: 11px; padding: 0 2px; user-select: none; }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed;
+      top: var(--topnav-h); left: 0;
+      width: var(--nav-w);
+      height: calc(100vh - var(--topnav-h));
+      padding: 36px 24px;
+      border-right: 1px solid var(--rule);
+      overflow-y: auto;
+      background: var(--bg);
+    }
+
+    nav .wordmark { font-family: var(--font-serif); font-size: 17px; font-weight: 600; color: var(--near-blk); margin-bottom: 6px; }
+    nav .sub { font-size: 11px; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; margin-bottom: 28px; }
+    nav ul { list-style: none; }
+    nav ul li { margin-bottom: 2px; }
+
+    nav ul li a {
+      display: block;
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-size: 13px;
+      color: var(--muted);
+      text-decoration: none;
+      transition: background .12s, color .12s;
+    }
+
+    nav ul li a:hover { background: var(--cell-bg); color: var(--near-blk); }
+    nav ul li a.active { color: var(--accent-dk); font-weight: 600; }
+    nav .nav-sep { border: none; border-top: 1px solid var(--rule); margin: 14px 0; }
+
+    /* ── MAIN ── */
+    main {
+      margin-left: var(--nav-w);
+      margin-top: var(--topnav-h);
+      padding: 60px 64px 100px;
+      max-width: 900px;
+      width: 100%;
+    }
+
+    .page-header { margin-bottom: 56px; padding-bottom: 28px; border-bottom: 2px solid var(--accent); }
+
+    .page-header h1 {
+      font-family: var(--font-serif);
+      font-size: 38px;
+      font-weight: 400;
+      color: var(--near-blk);
+      line-height: 1.2;
+      margin-bottom: 10px;
+    }
+
+    .page-header .meta { font-size: 12px; color: var(--muted); letter-spacing: .05em; text-transform: uppercase; }
+
+    /* ── SECTIONS ── */
+    section { margin-bottom: 60px; scroll-margin-top: calc(var(--topnav-h) + 16px); }
+
+    section h2 {
+      font-family: var(--font-serif);
+      font-size: 26px;
+      font-weight: 400;
+      color: var(--near-blk);
+      margin-bottom: 18px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--rule);
+    }
+
+    section h3 {
+      font-family: var(--font-serif);
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--near-blk);
+      margin: 24px 0 10px;
+    }
+
+    p { margin-bottom: 14px; }
+
+    /* ── TABLES ── */
+    .tbl-wrap { overflow-x: auto; margin-bottom: 8px; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+
+    thead tr { background: var(--near-blk); color: #fff; }
+
+    thead th {
+      padding: 10px 14px;
+      text-align: left;
+      font-family: var(--font-sans);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    tbody tr { border-bottom: 1px solid var(--rule); }
+    tbody tr:nth-child(even) { background: var(--cell-bg); }
+    tbody tr:hover { background: #e9e4da; }
+
+    td { padding: 9px 14px; vertical-align: top; }
+
+    td code, th code {
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      font-size: 12px;
+      background: rgba(0,0,0,.07);
+      padding: 1px 5px;
+      border-radius: 3px;
+    }
+
+    /* ── FLOW STEPS ── */
+    .flow-steps {
+      list-style: none;
+      counter-reset: step;
+      padding-left: 0;
+      margin-bottom: 18px;
+    }
+
+    .flow-steps li {
+      counter-increment: step;
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      padding: 7px 0;
+      border-bottom: 1px solid var(--rule);
+      font-size: 14px;
+    }
+
+    .flow-steps li::before {
+      content: counter(step);
+      min-width: 24px;
+      height: 24px;
+      background: var(--accent);
+      color: var(--near-blk);
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    /* ── STARTUP LOG ── */
+    .startup-log {
+      background: var(--near-blk);
+      color: #b8f0b8;
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      font-size: 12.5px;
+      line-height: 1.7;
+      padding: 14px 18px;
+      border-radius: 5px;
+      margin: 14px 0 22px;
+    }
+
+    /* ── ERROR PILLS ── */
+    .error-list { list-style: none; padding: 0; margin: 10px 0 18px; }
+
+    .error-list li {
+      padding: 10px 14px;
+      margin-bottom: 8px;
+      border-radius: 4px;
+      font-size: 13.5px;
+      background: var(--cell-bg);
+      border-left: 4px solid var(--accent-dk);
+    }
+
+    .error-list li code {
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      font-size: 12px;
+      background: rgba(0,0,0,.09);
+      padding: 1px 5px;
+      border-radius: 3px;
+    }
+
+    .error-list li .fix {
+      display: block;
+      font-size: 12.5px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    /* ── COPY BLOCK ── */
+    .copy-block {
+      position: relative;
+      margin: 14px 0 22px;
+    }
+
+    .copy-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(255,255,255,.12);
+      color: #bbb;
+      border: 1px solid rgba(255,255,255,.18);
+      border-radius: 4px;
+      font-size: 11px;
+      font-family: var(--font-sans);
+      padding: 3px 10px;
+      cursor: pointer;
+      transition: background .12s, color .12s;
+      letter-spacing: .04em;
+    }
+
+    .copy-btn:hover { background: rgba(255,255,255,.22); color: #fff; }
+
+    pre {
+      background: var(--near-blk);
+      color: #c8c4bc;
+      padding: 16px 20px;
+      border-radius: 6px;
+      font-size: 12.5px;
+      line-height: 1.75;
+      overflow-x: auto;
+      white-space: pre-wrap;
+    }
+
+    pre code {
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      background: transparent;
+      padding: 0;
+      border-radius: 0;
+      font-size: inherit;
+      color: inherit;
+    }
+
+    /* ── PRINCIPLES (dl) ── */
+    dl.principles dt {
+      font-family: var(--font-sans);
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--near-blk);
+      margin-top: 18px;
+      margin-bottom: 4px;
+    }
+
+    dl.principles dd {
+      margin-left: 0;
+      padding-left: 16px;
+      border-left: 3px solid var(--accent);
+      color: var(--body-txt);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    /* ── CALLOUT ── */
+    .callout {
+      background: var(--cell-bg);
+      border-left: 3px solid var(--accent-dk);
+      padding: 12px 16px;
+      margin: 14px 0 18px;
+      font-size: 13.5px;
+      color: var(--near-blk);
+      line-height: 1.6;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      margin-top: 80px;
+      padding-top: 24px;
+      border-top: 1px solid var(--rule);
+      font-size: 12px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+
+<div class="topnav">
+  <a href="index.html">Overview</a>
+  <span class="tn-sep">/</span>
+  <a href="architecture.html">Architecture</a>
+  <span class="tn-sep">/</span>
+  <a href="roadmap.html">Roadmap</a>
+  <span class="tn-sep">/</span>
+  <a href="design-system.html">Design System</a>
+  <span class="tn-sep">/</span>
+  <a href="writer-contract.html">Writer Contract</a>
+  <span class="tn-sep">/</span>
+  <a href="runbook.html" class="tn-active">Runbook</a>
+</div>
+
+<nav>
+  <div class="wordmark">The Frameshift</div>
+  <div class="sub">Runbook</div>
+  <ul>
+    <li><a href="#starting">Starting</a></li>
+    <li><a href="#on-demand">On-Demand</a></li>
+    <li><a href="#daily-flow">Daily Flow</a></li>
+    <hr class="nav-sep">
+    <li><a href="#testing">Testing</a></li>
+    <li><a href="#updating-baselines">Baselines</a></li>
+    <li><a href="#daily-context-update">Context Update</a></li>
+    <hr class="nav-sep">
+    <li><a href="#adding-slide-type">New Slide Type</a></li>
+    <li><a href="#common-failures">Failures</a></li>
+    <li><a href="#file-structure">File Structure</a></li>
+  </ul>
+</nav>
+
+<main>
+  <header class="page-header">
+    <h1>Frameshift v2 — Runbook</h1>
+    <div class="meta">Last updated: 2026-06-11 &nbsp;·&nbsp; @ai.xr.frameshift &nbsp;·&nbsp; watcher/bot.py is the entry point</div>
+  </header>
+
+  <!-- ── STARTING ── -->
+  <section id="starting">
+    <h2>Starting the System</h2>
+
+    <ol class="flow-steps">
+      <li>
+        Ensure <code>.env</code> is populated — all 8 keys must be set:
+        <code>GROQ_API_KEY</code>, <code>TELEGRAM_BOT_TOKEN</code>, <code>TELEGRAM_CHAT_ID</code>,
+        <code>HF_API_KEY</code>, <code>HF_API_KEY_2</code>, <code>HF_API_KEY_3</code>,
+        <code>SERPER_API_KEY</code>, <code>NEWS_API_KEY</code>.
+        HF keys 2 and 3 are optional (rotation); all others are required.
+      </li>
+      <li><code>cd ~/frameshift_v2</code></li>
+      <li>
+        <code>python3 tests/smoke.py</code> — run the full smoke test first.
+        All 9 checks must pass before starting the bot.
+      </li>
+      <li><code>python3 watcher/bot.py</code></li>
+      <li>
+        Confirm startup log — you should see all three lines:
+        <div class="startup-log">[bot] starting — on-demand: /carousel &lt;url&gt; | daily: 8:00 AM Toronto
+[bot] scheduler armed — next run: 2026-06-12 08:00:00-04:00
+[bot] polling... (Ctrl+C to stop)</div>
+      </li>
+      <li>Scheduler is now armed. The daily job fires at 8:00 AM Toronto (America/Toronto). Next run time is shown in the startup log.</li>
+    </ol>
+
+    <h3>Common startup errors</h3>
+    <ul class="error-list">
+      <li>
+        <code>telegram.error.Conflict: Terminated by other getUpdates request</code> (409)
+        <span class="fix">Another bot instance is already polling. Fix: <code>pkill -f bot.py</code>, wait 5 seconds, restart.</span>
+      </li>
+      <li>
+        <code>[bot] TELEGRAM_BOT_TOKEN not set — check .env</code>
+        <span class="fix">The bot exits immediately. Check <code>~/frameshift_v2/.env</code> — the key must be on its own line with no extra spaces.</span>
+      </li>
+      <li>
+        <code>GROQ_API_KEY is not set — check ~/frameshift_v2/.env</code>
+        <span class="fix">Raised when the first <code>/carousel</code> is sent. Set <code>GROQ_API_KEY</code> in <code>.env</code> and restart the bot.</span>
+      </li>
+    </ul>
+  </section>
+
+  <!-- ── ON-DEMAND ── -->
+  <section id="on-demand">
+    <h2>On-Demand Carousel (<code>/carousel</code>)</h2>
+
+    <p>Send <code>/carousel &lt;url&gt;</code> in the Telegram chat. Any valid <code>http://</code> or <code>https://</code> URL is accepted.</p>
+
+    <h3>Expected flow</h3>
+    <ol class="flow-steps">
+      <li>Bot replies <em>"Generating carousel..."</em> immediately</li>
+      <li>Scrape → Groq write → image fetch → Pillow render (~2–3 min)</li>
+      <li>Slides delivered as Telegram media group (4–8 PNGs)</li>
+      <li>Caption + source URL attached to the first slide</li>
+      <li>Run logged to <code>store/run_log.json</code></li>
+    </ol>
+
+    <h3>Failure messages</h3>
+    <ul class="error-list">
+      <li>
+        <code>⚠️ Couldn't fetch that article.</code>
+        <span class="fix">Site is paywalled, bot-blocked, or JavaScript-rendered. All 7 scrape strategies failed including Jina Reader API. Try: <code>archive.ph/&lt;url&gt;</code> or <code>12ft.io/&lt;url&gt;</code>.</span>
+      </li>
+      <li>
+        <code>Generation hiccup — retrying...</code> then <code>Generation failed: &lt;reason&gt;</code>
+        <span class="fix">Groq returned invalid JSON or a schema violation. Bot retried once automatically. Check the reason — "Invalid carousel JSON" usually means a field name mismatch. Running again often clears it.</span>
+      </li>
+      <li>
+        <code>Generation failed: caption must be at least 80 characters</code>
+        <span class="fix">Groq returned a very thin summary — article content was likely too short. Retry with a longer article, or check that the scrape extracted real content.</span>
+      </li>
+    </ul>
+  </section>
+
+  <!-- ── DAILY FLOW ── -->
+  <section id="daily-flow">
+    <h2>Auto-Daily Flow</h2>
+
+    <p>
+      <strong>Schedule:</strong> 8:00 AM Toronto (<code>America/Toronto</code>)<br>
+      <strong>Manual trigger:</strong> Send <code>/run</code> in Telegram (owner chat only)
+    </p>
+
+    <h3>Expected flow</h3>
+    <ol class="flow-steps">
+      <li>Bot runs ingestion — fetches Serper, RSS feeds, and NewsAPI; scores by recency × source tier × signal strength</li>
+      <li>Sends candidate list to Telegram — up to 10 stories with scores and summaries</li>
+      <li>
+        You reply within <strong>2 hours</strong> with one of:
+        <ul style="margin:8px 0 0 16px;font-size:13.5px;line-height:2;">
+          <li><code>ALL</code> — generate all candidates</li>
+          <li><code>1,3,5</code> (or <code>1 3 5</code>) — generate stories 1, 3, and 5 only</li>
+          <li><code>SKIP</code> — skip this run entirely</li>
+        </ul>
+      </li>
+      <li>Bot generates + delivers approved carousels, one by one</li>
+      <li>Run complete — bot replies <em>"batch complete — N carousel(s) delivered"</em></li>
+      <li>Each delivery logged to <code>store/run_log.json</code></li>
+    </ol>
+
+    <div class="callout">
+      If no reply within 2 hours, the approval window expires and the run is skipped.
+      The pending candidates file (<code>store/pending_candidates.json</code>) is cleared automatically.
+    </div>
+  </section>
+
+  <!-- ── TESTING ── -->
+  <section id="testing">
+    <h2>Test Commands</h2>
+
+    <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr><th>Command</th><th>What it tests</th><th>When to run</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>python3 tests/smoke.py</code></td>
+          <td>Full pipeline end-to-end (9 checks): scrape → write → caption → slide structure → image → render → dimensions → delivery</td>
+          <td>Before any deploy or bot restart</td>
+        </tr>
+        <tr>
+          <td><code>make regression</code></td>
+          <td>Pixel-diff against 9 approved PNG baselines — 18 checks total (dimensions + exact match)</td>
+          <td>Before any renderer or design_constants change</td>
+        </tr>
+        <tr>
+          <td><code>make test</code></td>
+          <td>All unit tests + regression suite</td>
+          <td>After any code change</td>
+        </tr>
+        <tr>
+          <td><code>python3 tests/smoke.py &lt;url&gt;</code></td>
+          <td>Smoke test with a specific article URL</td>
+          <td>Debugging a source that's failing in production</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+
+    <h3>Test suite coverage</h3>
+    <dl class="principles">
+      <dt>Smoke test (<code>tests/smoke.py</code>)</dt>
+      <dd>Live network calls, no mocks. Covers: scrape, Groq write, schema validation, image fetch, Pillow render, PNG dimensions, Telegram delivery.</dd>
+
+      <dt>Regression tests (<code>tests/regression/</code>)</dt>
+      <dd>9 slide types × 2 checks = 18 tests. Dimension check (1080×1350) and zero-diff pixel comparison against locked baselines. Run with <code>make regression</code>.</dd>
+
+      <dt>Unit tests (<code>tests/unit/</code>)</dt>
+      <dd>Writer schema validation (rejects bad JSON, accepts valid) and renderer output (each slide type renders, correct size, spot colour checks).</dd>
+
+      <dt>Not covered by automated tests</dt>
+      <dd>Ingestion scoring logic, FLUX image generation fallback, Groq model fallback (429 retry), approval parsing edge cases. These are exercised by running the daily flow manually.</dd>
+    </dl>
+  </section>
+
+  <!-- ── UPDATING BASELINES ── -->
+  <section id="updating-baselines">
+    <h2>Updating Regression Baselines</h2>
+
+    <p>
+      Run this after any intentional change to <code>watcher/renderer.py</code> or
+      <code>watcher/design_constants.py</code>. The regression suite will fail until
+      baselines are refreshed — that failure is the safety net, not a bug.
+    </p>
+
+    <ol class="flow-steps">
+      <li>Make the renderer or design constants change</li>
+      <li>Visually verify the output looks correct — render the test carousel and open the PNGs in Preview:
+        <code style="display:block;margin-top:6px;">python3 -c "import sys; sys.path.insert(0,'watcher'); from renderer import render_carousel, TEST_CAROUSEL; render_carousel(TEST_CAROUSEL, prefix='preview')"</code>
+      </li>
+      <li><code>make update-baselines</code> — regenerates all 9 baseline PNGs</li>
+      <li><code>make regression</code> — all 18 tests must pass</li>
+      <li>Commit code changes and updated baselines together in the same commit</li>
+      <li>Update <code>docs/design-system.html</code> if any pixel values, colours, or font sizes changed</li>
+    </ol>
+  </section>
+
+  <!-- ── DAILY CONTEXT UPDATE ── -->
+  <section id="daily-context-update">
+    <h2>Daily Context Update</h2>
+
+    <p>
+      Run after any session where something ships. Paste this prompt into Claude Code.
+      It marks completed phases, updates <code>context.md</code>, and regenerates
+      <code>docs/roadmap.html</code>.
+    </p>
+
+    <div class="copy-block">
+      <button class="copy-btn" onclick="copyPrompt(this)">Copy</button>
+<pre><code id="daily-prompt">Read ~/frameshift_v2/ROADMAP.md and ~/frameshift_v2/docs/context.md
+
+Run the wrap-up sequence:
+1. Mark anything shipped this session as complete in ROADMAP.md
+2. Update context.md — current phase, next task, known issues. Max 60 lines.
+3. Regenerate docs/roadmap.html from the updated ROADMAP.md
+4. Report what was updated and what the next task is
+
+Read before write. Diff before save on every file.</code></pre>
+    </div>
+
+    <p style="font-size:13px;color:var(--muted);">
+      The full daily update protocol is documented in
+      <a href="index.html#daily-context-update">Overview — Daily Context Update</a>.
+    </p>
+  </section>
+
+  <!-- ── ADDING SLIDE TYPE ── -->
+  <section id="adding-slide-type">
+    <h2>Adding a New Slide Type</h2>
+
+    <div class="callout">
+      Run <code>make regression</code> before starting — lock the current baseline
+      so you have a clean reference point.
+    </div>
+
+    <ol class="flow-steps">
+      <li>Design the slide — build a React mockup, get visual approval before writing any code</li>
+      <li>
+        Add to <code>watcher/design_constants.py</code>:
+        <ul style="margin:6px 0 0 16px;font-size:13.5px;line-height:1.9;">
+          <li>Append to <code>SLIDE_TYPES</code> list</li>
+          <li>Add schema entry to <code>WRITER_SCHEMA</code> with all fields + word limits</li>
+          <li>Add palette rule to <code>WRITER_PROMPT</code> with "use when…" instruction</li>
+        </ul>
+      </li>
+      <li>
+        Add renderer function to <code>watcher/renderer.py</code>:
+        <ul style="margin:6px 0 0 16px;font-size:13.5px;line-height:1.9;">
+          <li>Write <code>render_{type}(data) → PIL.Image</code> following existing pattern</li>
+          <li>Add entry to <code>RENDERERS</code> dict — nothing else changes</li>
+        </ul>
+      </li>
+      <li>Add the new type's fields to <code>_SCHEMA_ENFORCEMENT</code> in <code>watcher/writer.py</code></li>
+      <li>Add a fixture entry to <code>REGRESSION_CAROUSEL</code> in <code>tests/regression/test_renderer_regression.py</code> and add the type to <code>SLIDE_TYPES</code> in that file</li>
+      <li><code>make update-baselines</code> — generates baseline PNG for the new type</li>
+      <li><code>make regression</code> — all tests must pass (including the new type's dimension + pixel-diff)</li>
+      <li>Update <code>docs/design-system.html</code> (new slide-type subsection) and <code>docs/writer-contract.html</code> (new schema subsection)</li>
+    </ol>
+  </section>
+
+  <!-- ── COMMON FAILURES ── -->
+  <section id="common-failures">
+    <h2>Common Failures and Fixes</h2>
+
+    <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr><th>Symptom</th><th>Cause</th><th>Fix</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>409 Conflict on bot startup</td>
+          <td>Another bot instance is already polling</td>
+          <td><code>pkill -f bot.py</code>, wait 5 s, restart</td>
+        </tr>
+        <tr>
+          <td><code>category</code> validation error — "too short"</td>
+          <td>Groq used a 1-char category (e.g. "AI" before the fix)</td>
+          <td>Already fixed — 2-char minimum in <code>_FIELD_MIN</code>. If it resurfaces, check <code>writer.py:_FIELD_MIN</code>.</td>
+        </tr>
+        <tr>
+          <td>Caption too short / generation fails</td>
+          <td>Groq returned a thin summary on sparse article content</td>
+          <td>Retry the command. If persistent, check that scrape extracted real body text (&gt;200 chars).</td>
+        </tr>
+        <tr>
+          <td>Stat slide has excess whitespace</td>
+          <td>Short stat content on a tall canvas</td>
+          <td>Known issue — parked in <code>PARKING_LOT.md</code>. Requires body image scraping to resolve.</td>
+        </tr>
+        <tr>
+          <td>Curly quotes / syntax error in <code>renderer.py</code></td>
+          <td>Claude Code inserted Unicode smart quotes into Python string literals</td>
+          <td>Run a byte-level check after any renderer edits: <code>grep -P '[‘’“”]' watcher/renderer.py</code>. Replace with ASCII equivalents.</td>
+        </tr>
+        <tr>
+          <td>Regression tests fail</td>
+          <td>Renderer was changed without updating baselines</td>
+          <td><code>make update-baselines</code> then <code>make regression</code></td>
+        </tr>
+        <tr>
+          <td>Serper or NewsAPI returns 0 items</td>
+          <td>API key quota exceeded or key expired</td>
+          <td>Check keys in <code>.env</code>. Verify against Serper and NewsAPI dashboards.</td>
+        </tr>
+        <tr>
+          <td>OG image not appearing on cover slide</td>
+          <td>OG image was &lt;400×300px, or the fetch failed</td>
+          <td>FLUX fallback triggers automatically. If FLUX also fails, renderer uses dark placeholder — not an error.</td>
+        </tr>
+        <tr>
+          <td>Bot does not respond to commands</td>
+          <td>Bot process has stopped or was never started</td>
+          <td><code>cd ~/frameshift_v2 &amp;&amp; python3 watcher/bot.py</code></td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </section>
+
+  <!-- ── FILE STRUCTURE ── -->
+  <section id="file-structure">
+    <h2>Key File Locations</h2>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:14px;">All paths relative to <code>~/frameshift_v2/</code>. See <a href="architecture.html#file-paths">Architecture — File Paths</a> for full detail.</p>
+
+    <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr><th>File</th><th>Purpose</th><th>Notes</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>watcher/bot.py</code></td><td>Main entry point</td><td>Start this to run the system</td></tr>
+        <tr><td><code>watcher/writer.py</code></td><td>Scrape + Groq + validate</td><td>7-strategy scraper + Jina fallback</td></tr>
+        <tr><td><code>watcher/renderer.py</code></td><td>Pillow PNG renderer — 9 slide types</td><td>Do not touch without running <code>make regression</code> first</td></tr>
+        <tr><td><code>watcher/ingestion.py</code></td><td>Daily candidate scoring</td><td>Serper + RSS + NewsAPI; 48h recency cutoff</td></tr>
+        <tr><td><code>watcher/delivery.py</code></td><td>Telegram media group sender</td><td>10-slide hard cap; synchronous (<code>asyncio.run</code> internal)</td></tr>
+        <tr><td><code>watcher/image_fetcher.py</code></td><td>OG image fetch + FLUX fallback</td><td>Min 400×300px; rotates 3 HF keys on 429</td></tr>
+        <tr><td><code>watcher/feedback.py</code></td><td>Scrape reliability tracking</td><td>Logs to <code>store/feedback_log.json</code></td></tr>
+        <tr><td><code>watcher/scorer.py</code></td><td>Domain reliability multiplier</td><td>Needs 30+ days data before meaningful effect</td></tr>
+        <tr><td><code>store/run_log.json</code></td><td>Carousel delivery log</td><td>One entry per carousel attempt</td></tr>
+        <tr><td><code>store/feedback_log.json</code></td><td>Scrape attempt log</td><td>Source of domain reliability data</td></tr>
+        <tr><td><code>store/scoring_weights.json</code></td><td>Learned scoring weights</td><td>Updated by <code>feedback.py</code> after each session</td></tr>
+        <tr><td><code>store/pending_candidates.json</code></td><td>Approval state</td><td>Written after <code>/run</code> or daily job; deleted after reply</td></tr>
+        <tr><td><code>.env</code></td><td>API keys and secrets</td><td>Never commit — not tracked by git</td></tr>
+        <tr><td><code>PARKING_LOT.md</code></td><td>Deferred features</td><td>Check before starting new work to avoid re-designing parked items</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </section>
+
+  <footer>
+    Frameshift v2 &nbsp;·&nbsp; The Frameshift &nbsp;·&nbsp; @ai.xr.frameshift &nbsp;·&nbsp; Built by Snow Abad
+  </footer>
+</main>
+
+<script>
+function copyPrompt(btn) {
+  const text = document.getElementById('daily-prompt').textContent;
+  navigator.clipboard.writeText(text).then(function() {
+    btn.textContent = 'Copied!';
+    setTimeout(function() { btn.textContent = 'Copy'; }, 2000);
+  });
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,9 @@
+pillow
+requests
+beautifulsoup4
+google-generativeai
+python-telegram-bot
+python-dotenv
+apscheduler
+feedparser
+pyyaml

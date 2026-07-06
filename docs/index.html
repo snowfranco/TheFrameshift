@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="agent-context" content="Frameshift v2 project overview. Multi-agent architecture, self-learning feedback loop, scoring formula, and daily documentation update protocol.">
+  <title>Frameshift v2 — Overview</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #f7f4ef;
+      --accent:    #b8a9d9;
+      --accent-dk: #7a6aaa;
+      --near-blk:  #0d0d0d;
+      --body-txt:  #333333;
+      --muted:     #777777;
+      --rule:      #e0dbd2;
+      --cell-bg:   #eeeae3;
+      --nav-w:     220px;
+      --topnav-h:  44px;
+      --font-serif: 'EB Garamond', Georgia, serif;
+      --font-sans:  -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--body-txt);
+      font-family: var(--font-sans);
+      font-size: 15px;
+      line-height: 1.65;
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* ── TOPNAV ── */
+    .topnav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: var(--topnav-h);
+      background: var(--near-blk);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 2px;
+      z-index: 200;
+    }
+
+    .topnav a, .topnav .tn-ghost {
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 3px;
+      white-space: nowrap;
+      letter-spacing: .03em;
+      text-decoration: none;
+    }
+
+    .topnav a {
+      color: #999;
+      transition: color .12s, background .12s;
+    }
+
+    .topnav a:hover {
+      color: #fff;
+      background: rgba(255,255,255,.07);
+    }
+
+    .topnav a.tn-active {
+      color: var(--accent);
+    }
+
+    .topnav .tn-ghost {
+      color: #555;
+      cursor: default;
+    }
+
+    .topnav .tn-sep {
+      color: #333;
+      font-size: 11px;
+      padding: 0 2px;
+      user-select: none;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed;
+      top: var(--topnav-h); left: 0;
+      width: var(--nav-w);
+      height: calc(100vh - var(--topnav-h));
+      padding: 36px 24px;
+      border-right: 1px solid var(--rule);
+      overflow-y: auto;
+      background: var(--bg);
+    }
+
+    nav .wordmark {
+      font-family: var(--font-serif);
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--near-blk);
+      margin-bottom: 6px;
+    }
+
+    nav .sub {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      margin-bottom: 28px;
+    }
+
+    nav ul { list-style: none; }
+
+    nav ul li { margin-bottom: 2px; }
+
+    nav ul li a {
+      display: block;
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-size: 13px;
+      color: var(--muted);
+      text-decoration: none;
+      transition: background .12s, color .12s;
+    }
+
+    nav ul li a:hover {
+      background: var(--cell-bg);
+      color: var(--near-blk);
+    }
+
+    nav ul li a.active { color: var(--accent-dk); font-weight: 600; }
+
+    nav .nav-sep {
+      border: none;
+      border-top: 1px solid var(--rule);
+      margin: 14px 0;
+    }
+
+    /* ── MAIN ── */
+    main {
+      margin-left: var(--nav-w);
+      margin-top: var(--topnav-h);
+      padding: 60px 64px 100px;
+      max-width: 900px;
+      width: 100%;
+    }
+
+    .page-header {
+      margin-bottom: 56px;
+      padding-bottom: 28px;
+      border-bottom: 2px solid var(--accent);
+    }
+
+    .page-header h1 {
+      font-family: var(--font-serif);
+      font-size: 38px;
+      font-weight: 400;
+      color: var(--near-blk);
+      line-height: 1.2;
+      margin-bottom: 6px;
+    }
+
+    .page-header .subtitle {
+      font-family: var(--font-serif);
+      font-size: 20px;
+      font-weight: 400;
+      font-style: italic;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .page-header .meta {
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+
+    /* ── SECTIONS ── */
+    section {
+      margin-bottom: 60px;
+      scroll-margin-top: calc(var(--topnav-h) + 16px);
+    }
+
+    section h2 {
+      font-family: var(--font-serif);
+      font-size: 26px;
+      font-weight: 400;
+      color: var(--near-blk);
+      margin-bottom: 18px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--rule);
+    }
+
+    section h3 {
+      font-family: var(--font-serif);
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--near-blk);
+      margin: 28px 0 12px;
+    }
+
+    p { margin-bottom: 14px; }
+
+    /* ── TABLES ── */
+    .tbl-wrap { overflow-x: auto; margin-bottom: 8px; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+    }
+
+    thead tr {
+      background: var(--near-blk);
+      color: #fff;
+    }
+
+    thead th {
+      padding: 10px 14px;
+      text-align: left;
+      font-family: var(--font-sans);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    tbody tr { border-bottom: 1px solid var(--rule); }
+
+    tbody tr:nth-child(even) { background: var(--cell-bg); }
+
+    tbody tr:hover { background: #e9e4da; }
+
+    td {
+      padding: 9px 14px;
+      vertical-align: top;
+    }
+
+    td code, th code {
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      font-size: 12px;
+      background: rgba(0,0,0,.07);
+      padding: 1px 5px;
+      border-radius: 3px;
+    }
+
+    /* ── FORMULA BLOCK ── */
+    .formula-block {
+      background: var(--cell-bg);
+      border-left: 3px solid var(--accent);
+      padding: 14px 20px;
+      margin: 18px 0 22px;
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      font-size: 15px;
+      color: var(--near-blk);
+      letter-spacing: .02em;
+    }
+
+    /* ── CODE BLOCK ── */
+    pre {
+      background: var(--near-blk);
+      color: #c8c4bc;
+      padding: 16px 20px;
+      border-radius: 6px;
+      font-size: 12px;
+      line-height: 1.7;
+      overflow-x: auto;
+      margin: 14px 0 22px;
+    }
+
+    pre code {
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      background: transparent;
+      padding: 0;
+      border-radius: 0;
+      font-size: inherit;
+      color: inherit;
+    }
+
+    /* ── PIPELINE DIAGRAM (shared with architecture.html) ── */
+    .pd-box {
+      padding: 9px 14px;
+      border-radius: 4px;
+      font-size: 12.5px;
+      text-align: center;
+      line-height: 1.4;
+    }
+
+    .pd-box code {
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      font-size: 11.5px;
+      background: transparent;
+      padding: 0;
+    }
+
+    .pd-human    { background: #2d6a4f; color: #fff; }
+    .pd-telegram { background: #0d0d0d; color: #fff; }
+    .pd-module   { background: var(--accent); color: #0d0d0d; }
+    .pd-api      { background: #f0ede8; color: #555; border: 1.5px dashed #c8bfb0; }
+    .pd-rejected { background: #555; color: #fff; }
+
+    .pd-arrow {
+      text-align: center;
+      color: var(--accent);
+      font-size: 16px;
+      line-height: 1;
+      padding: 3px 0;
+    }
+
+    .pd-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .pd-legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .pd-legend-swatch {
+      display: inline-block;
+      width: 12px; height: 12px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    /* ── FEEDBACK LOOP DIAGRAM ── */
+    .fl-diagram {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      max-width: 680px;
+    }
+
+    .fl-split-header {
+      display: flex;
+      justify-content: space-around;
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 600;
+      padding: 4px 5%;
+      letter-spacing: .03em;
+    }
+
+    .fl-branch-row {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+    }
+
+    .fl-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .fl-converge {
+      text-align: center;
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      padding: 6px 0 2px;
+    }
+
+    .fl-loop-close {
+      border: 2px solid var(--accent-dk);
+      font-weight: 600;
+    }
+
+    /* ── DEFINITION LIST ── */
+    dl { margin: 16px 0 22px; }
+    dt { font-size: 14px; margin-top: 14px; margin-bottom: 4px; }
+    dd { margin-left: 20px; font-size: 14px; color: var(--body-txt); line-height: 1.6; }
+
+    /* ── FOOTER ── */
+    footer {
+      margin-top: 80px;
+      padding-top: 24px;
+      border-top: 1px solid var(--rule);
+      font-size: 12px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+
+<div class="topnav">
+  <a href="index.html" class="tn-active">Overview</a>
+  <span class="tn-sep">/</span>
+  <a href="architecture.html">Architecture</a>
+  <span class="tn-sep">/</span>
+  <a href="roadmap.html">Roadmap</a>
+  <span class="tn-sep">/</span>
+  <a href="design-system.html">Design System</a>
+  <span class="tn-sep">/</span>
+  <a href="writer-contract.html">Writer Contract</a>
+  <span class="tn-sep">/</span>
+  <a href="runbook.html">Runbook</a>
+</div>
+
+<nav>
+  <div class="wordmark">The Frameshift</div>
+  <div class="sub">Overview</div>
+  <ul>
+    <li><a href="#what-is-this">What Is This</a></li>
+    <hr class="nav-sep">
+    <li><a href="#multi-agent">Multi-Agent</a></li>
+    <li><a href="#self-learning">Self-Learning</a></li>
+    <li><a href="#context-management">Context Mgmt</a></li>
+    <hr class="nav-sep">
+    <li><a href="#scoring-formula">Scoring Formula</a></li>
+    <li><a href="#daily-context-update">Daily Update</a></li>
+  </ul>
+</nav>
+
+<main>
+  <header class="page-header">
+    <h1>Frameshift v2</h1>
+    <div class="subtitle">A self-learning multi-agent carousel system</div>
+    <div class="meta">Last updated: 2026-06-11 &nbsp;·&nbsp; @ai.xr.frameshift</div>
+  </header>
+
+  <!-- ── WHAT IS THIS ── -->
+  <section id="what-is-this">
+    <h2>What Is This</h2>
+    <p>
+      Frameshift v2 is a multi-agent AI system that monitors signals across AI, spatial computing,
+      AR, and emerging technology, then automatically produces branded Instagram carousels for
+      The Frameshift (<code>@ai.xr.frameshift</code>). It operates in two modes: on-demand (send
+      a URL, get a carousel) and auto-daily (scheduled ingestion, human approval, batch generation).
+      The system is self-learning — approval and rejection signals from the human operator
+      continuously improve source scoring and story selection over time.
+    </p>
+  </section>
+
+  <!-- ── MULTI-AGENT ── -->
+  <section id="multi-agent">
+    <h2>Multi-Agent Architecture</h2>
+    <p>
+      The system is composed of discrete agents, each with a single responsibility and a clean
+      input/output contract. Agents communicate through typed data structures — no shared state,
+      no side effects across module boundaries.
+    </p>
+    <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr><th>Agent</th><th>File</th><th>Role</th><th>Input</th><th>Output</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Scraper Agent</strong></td>
+          <td><code>writer.py:scrape()</code></td>
+          <td>Fetch + extract article content</td>
+          <td>URL</td>
+          <td><code>{title, body, og_image_url}</code></td>
+        </tr>
+        <tr>
+          <td><strong>Writer Agent</strong></td>
+          <td><code>writer.py:write()</code></td>
+          <td>Generate slide structure via LLM</td>
+          <td>article dict</td>
+          <td>slides JSON</td>
+        </tr>
+        <tr>
+          <td><strong>Renderer Agent</strong></td>
+          <td><code>renderer.py</code></td>
+          <td>Render slides to PNG</td>
+          <td>slides JSON</td>
+          <td>PNG files</td>
+        </tr>
+        <tr>
+          <td><strong>Ingestion Agent</strong></td>
+          <td><code>ingestion.py</code></td>
+          <td>Score + rank candidate stories</td>
+          <td><code>sources.yaml</code> + APIs</td>
+          <td>ranked candidate list</td>
+        </tr>
+        <tr>
+          <td><strong>Scorer Agent</strong></td>
+          <td><code>scorer.py</code></td>
+          <td>Apply learned weights to candidates</td>
+          <td>raw candidates</td>
+          <td>scored + ranked list</td>
+        </tr>
+        <tr>
+          <td><strong>Feedback Agent</strong></td>
+          <td><code>feedback.py</code></td>
+          <td>Update weights from approval signal</td>
+          <td>approval log</td>
+          <td>updated <code>scoring_weights.json</code></td>
+        </tr>
+        <tr>
+          <td><strong>Delivery Agent</strong></td>
+          <td><code>delivery.py</code></td>
+          <td>Send carousels to Telegram</td>
+          <td>PNG files + caption</td>
+          <td>Telegram media group</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </section>
+
+  <!-- ── SELF-LEARNING ── -->
+  <section id="self-learning">
+    <h2>Self-Learning: Reinforcement Learning from Human Feedback</h2>
+
+    <p>
+      The system uses a feedback loop pattern known as a Contextual Bandit — a lightweight
+      reinforcement learning approach where the system presents options (candidate stories),
+      observes which ones the operator approves or rejects, and updates its scoring weights
+      to improve future selections. No neural network required at this scale.
+    </p>
+
+    <p>
+      Every carousel generation attempt is logged to <code>store/feedback_log.json</code> with
+      domain, URL, timestamp, and success/failure. <code>feedback.py</code> updates the
+      <code>domain_reliability</code> score in <code>scoring_weights.json</code>: successful
+      scrapes push reliability toward 1.0, failures toward 0.0. After 3+ attempts on a domain,
+      <code>scorer.py</code> applies this as a multiplier to that domain's candidate scores —
+      consistently unscrapeable domains are automatically deprioritised. A domain below 30%
+      reliability after 3+ attempts triggers a blocklist warning to stderr.
+    </p>
+
+    <p>
+      The system starts with source tiers and recency decay as priors and improves with use. After
+      30+ days of data, the scoring reflects which domains are reliably accessible — not just
+      editorially high-tier but actually scrapeable. Note: editorial approval/rejection signals
+      (which stories the operator selects) are not yet fed back into scoring; that is Phase 2C.
+      The current feedback loop improves <em>source accessibility</em>, not editorial preference.
+    </p>
+
+    <h3>Feedback Loop</h3>
+
+    <div class="pd-legend">
+      <div class="pd-legend-item">
+        <span class="pd-legend-swatch" style="background:#2d6a4f;"></span> Human action
+      </div>
+      <div class="pd-legend-item">
+        <span class="pd-legend-swatch" style="background:#0d0d0d;"></span> Telegram
+      </div>
+      <div class="pd-legend-item">
+        <span class="pd-legend-swatch" style="background:#b8a9d9;"></span> Python module
+      </div>
+      <div class="pd-legend-item">
+        <span class="pd-legend-swatch" style="background:#f0ede8;border:1px dashed #c8bfb0;"></span> Storage
+      </div>
+    </div>
+
+    <div class="fl-diagram">
+      <div class="pd-box pd-module">APScheduler fires — 8am Toronto</div>
+      <div class="pd-arrow">↓</div>
+      <div class="pd-box pd-module"><code>ingestion.py</code> — fetch candidates (Serper + RSS + NewsAPI)</div>
+      <div class="pd-arrow">↓</div>
+      <div class="pd-box pd-module"><code>scorer.py</code> — apply <code>domain_reliability</code> from <code>scoring_weights.json</code></div>
+      <div class="pd-arrow">↓</div>
+      <div class="pd-box pd-telegram">Telegram — top-10 candidates; user replies ALL / 1,3,5 / SKIP</div>
+      <div class="pd-arrow">↓</div>
+      <div class="pd-box pd-human">Approved stories → <code>writer.generate(url)</code> per story</div>
+      <div class="pd-arrow">↓</div>
+      <div class="fl-split-header">
+        <span>↙ Scrape succeeded</span>
+        <span>Scrape failed ↘</span>
+      </div>
+      <div class="fl-branch-row">
+        <div class="fl-col">
+          <div class="pd-box pd-module"><code>renderer.py</code> + <code>delivery.py</code> — deliver</div>
+          <div class="pd-arrow">↓</div>
+          <div class="pd-box pd-module"><code>feedback.py</code> — record success for domain</div>
+        </div>
+        <div class="fl-col">
+          <div class="pd-box pd-rejected">Error reply to user</div>
+          <div class="pd-arrow">↓</div>
+          <div class="pd-box pd-module"><code>feedback.py</code> — record failure for domain</div>
+        </div>
+      </div>
+      <div class="fl-converge">↓ both paths ↓</div>
+      <div class="pd-box pd-api"><code>domain_reliability</code> in <code>scoring_weights.json</code> updated</div>
+      <div class="pd-arrow">↓</div>
+      <div class="pd-box pd-module fl-loop-close">Next ingestion: unreliable domains score lower ← loop closes</div>
+    </div>
+  </section>
+
+  <!-- ── CONTEXT MANAGEMENT ── -->
+  <section id="context-management">
+    <h2>Context Management</h2>
+
+    <p>
+      Frameshift v2 implements a file-based, agent-first context management system. Rather than
+      using a vector store or framework like LangChain, the system maintains context through
+      structured documents that both humans and AI agents can read, navigate, and update directly.
+    </p>
+
+    <p>
+      LLM agents navigate by file path and section ID more reliably than by semantic retrieval
+      at this project scope. Explicit structure beats implicit retrieval when the knowledge base
+      is small and stable. Every doc has a machine-readable <code>id</code> on every section,
+      <code>data-status</code> attributes on every status item, and a
+      <code>&lt;meta name="agent-context"&gt;</code> tag describing what the file covers.
+    </p>
+
+    <p>The system is organized around four pillars:</p>
+
+    <dl>
+      <dt><strong>Just-in-Time Retrieval</strong></dt>
+      <dd>Claude Code reads specific files before acting. Prompts explicitly name which files to
+      read. No file is loaded unless the task requires it.</dd>
+
+      <dt><strong>State Management</strong></dt>
+      <dd><code>ROADMAP.md</code> is the single source of truth for project state.
+      <code>store/</code> holds flat JSON run logs. <code>scoring_weights.json</code> persists
+      learned weights across sessions. No database.</dd>
+
+      <dt><strong>Compression &amp; Summarization</strong></dt>
+      <dd><code>docs/context.md</code> is the context bootstrap — 39 lines that orient any agent
+      completely in one read. Replaces walls-of-text handoff summaries.</dd>
+
+      <dt><strong>Session Continuity</strong></dt>
+      <dd>The project lives in a dedicated Claude Project with <code>context.md</code> pinned as
+      the project instruction. Every new session starts from the same known state.</dd>
+    </dl>
+
+    <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Document</th>
+          <th>Path</th>
+          <th>Agent reads it when</th>
+          <th>Updated when</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Context bootstrap</td>
+          <td><code>docs/context.md</code></td>
+          <td>Start of every session</td>
+          <td>Any phase ships</td>
+        </tr>
+        <tr>
+          <td>Architecture ref</td>
+          <td><code>docs/architecture.html</code></td>
+          <td>Building or modifying any module</td>
+          <td>New module added</td>
+        </tr>
+        <tr>
+          <td>Roadmap</td>
+          <td><code>ROADMAP.md</code></td>
+          <td>Checking phase spec or status</td>
+          <td>Anything ships</td>
+        </tr>
+        <tr>
+          <td>Roadmap HTML</td>
+          <td><code>docs/roadmap.html</code></td>
+          <td>Human review of project status</td>
+          <td>Regenerated from <code>ROADMAP.md</code></td>
+        </tr>
+        <tr>
+          <td>Project overview</td>
+          <td><code>docs/index.html</code></td>
+          <td>Onboarding, RL/CMS reference</td>
+          <td>Major system changes</td>
+        </tr>
+        <tr>
+          <td>Writer contract</td>
+          <td><code>docs/writer-contract.html</code></td>
+          <td>Modifying writer or schema</td>
+          <td>Schema changes (Phase 3)</td>
+        </tr>
+        <tr>
+          <td>Design system</td>
+          <td><code>docs/design-system.html</code></td>
+          <td>Modifying renderer or slides</td>
+          <td>Design changes (Phase 3)</td>
+        </tr>
+        <tr>
+          <td>Runbook</td>
+          <td><code>docs/runbook.html</code></td>
+          <td>Debugging or operating system</td>
+          <td>Phase 4</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </section>
+
+  <!-- ── SCORING FORMULA ── -->
+  <section id="scoring-formula">
+    <h2>Scoring Formula</h2>
+
+    <div class="formula-block">score = recency_weight &times; source_tier &times; signal_strength</div>
+
+    <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr><th>Factor</th><th>Description</th><th>Range</th><th>Notes</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>recency_weight</code></td>
+          <td>Exponential decay from publish time</td>
+          <td>0.0–1.0</td>
+          <td>24hr = 1.0, 48hr ≈ 0.6, 7d ≈ 0.1</td>
+        </tr>
+        <tr>
+          <td><code>source_tier</code></td>
+          <td>Editorial quality of source</td>
+          <td>2–8</td>
+          <td>A=8, B=6, C=4, D=2; adjusted continuously by <code>feedback.py</code></td>
+        </tr>
+        <tr>
+          <td><code>signal_strength</code></td>
+          <td>Relevance to topic set</td>
+          <td>1.0–1.5</td>
+          <td>Keyword match score against <code>sources.yaml</code> topics</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+
+    <p style="font-size:13px;color:var(--muted);margin-top:14px;">
+      <code>source_tier</code> values are initial priors. <code>feedback.py</code> adjusts them
+      continuously based on operator approval signal — a source with consistent approvals
+      drifts upward; zero approvals in 30 days triggers automatic demotion.
+    </p>
+  </section>
+
+  <!-- ── DAILY CONTEXT UPDATE ── -->
+  <section id="daily-context-update">
+    <h2>Daily Context Update</h2>
+
+    <p>
+      The project's documentation is a living system. After any session where something ships,
+      the following docs are updated:
+    </p>
+
+    <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr><th>Change type</th><th>Docs to update</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>New module shipped</td>
+          <td><code>ROADMAP.md</code>, <code>architecture.html</code>, <code>index.html</code></td>
+        </tr>
+        <tr>
+          <td>Design change</td>
+          <td><code>ROADMAP.md</code>, <code>design-system.html</code></td>
+        </tr>
+        <tr>
+          <td>Prompt / schema change</td>
+          <td><code>writer-contract.html</code>, <code>ROADMAP.md</code></td>
+        </tr>
+        <tr>
+          <td>Scoring / feedback change</td>
+          <td><code>index.html</code> (self-learning section), <code>architecture.html</code></td>
+        </tr>
+        <tr>
+          <td>Pipeline change</td>
+          <td><code>architecture.html</code> (pipeline diagrams + data flow sections)</td>
+        </tr>
+        <tr>
+          <td>Any shipped phase</td>
+          <td><code>roadmap.html</code> (regenerate from <code>ROADMAP.md</code>)</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+
+    <p>The daily update is triggered manually by the operator, not automated.</p>
+
+    <p style="font-size:13px;color:var(--muted);margin-bottom:6px;">Claude Code prompt template for daily update:</p>
+<pre><code>"Read ~/frameshift_v2/ROADMAP.md and the following docs that may need
+updating based on today's work: [list affected docs]. Update ROADMAP.md
+first (mark shipped items, add any new decisions), then regenerate
+docs/roadmap.html from it, then update any other affected docs.
+Read before write. Diff before save on every file."</code></pre>
+  </section>
+
+  <footer>
+    Frameshift v2 &nbsp;·&nbsp; The Frameshift &nbsp;·&nbsp; @ai.xr.frameshift &nbsp;·&nbsp; Built by Snow Abad
+  </footer>
+</main>
+
+</body>
+</html>
