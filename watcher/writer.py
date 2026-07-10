@@ -50,24 +50,41 @@ _SCHEMA_ENFORCEMENT = (
     'timeline:  kicker (str), events (list of {"date": str, "event": str})\n'
     "explainer: kicker (str), question (str), answer (str)\n"
     "signal:    kicker (str), headline (str), implication (str), tag (str)\n"
+    "cta:       headline (str) — required, ALWAYS the last slide\n"
     "TOP-LEVEL FIELD (alongside 'slides', not inside any slide):\n"
     "caption: (str) 3-4 sentence Instagram caption. "
     "MINIMUM 50 words. Lead with the most interesting fact. "
     "Explain why it matters. Third person. Factual. No hype. "
     "Do NOT just restate the headline. "
     "TOP-LEVEL field alongside slides, not inside any slide.\n\n"
+    "CTA SLIDE — required, always last:\n"
+    "cta.headline: story-specific reason to follow @ai.xr.frameshift. "
+    "Must reference what The Frameshift covers, not the article topic. "
+    "Example: 'We track every AR acquisition before it goes mainstream.' "
+    "NOT: 'Learn more about Snap's AR efforts'. "
+    "It is a follow hook, never a source tagline or article summary.\n\n"
+    "QUALITY RULES — these override the palette rules above:\n"
+    "- signal.implication: minimum 25 words. Must make a specific "
+    "forward-looking claim. No hedging language ('could', 'might', "
+    "'has potential'). State what WILL happen or IS happening.\n"
+    "- stat: only use when the number is surprising, large, or reframes "
+    "the story's significance. 12% revenue growth is not a stat slide. "
+    "$14B market size is. If no strong stat exists, omit this slide type "
+    "entirely.\n"
+    "- context.body: minimum 30 words. Must explain what happened AND why "
+    "it matters in one paragraph.\n\n"
     "CRITICAL — do not substitute field names:\n"
-    '- "headline" not "title" (applies to cover, context, signal)\n'
+    '- "headline" not "title" (applies to cover, context, signal, cta)\n'
     '- "attribution" not "source", "author", or "by" (quote slide)\n'
     '- "body" not "text" or "description" (context slide)\n'
-    '- "implication" not "text" or "body" (signal slide)\n'
-    '- do NOT include a cta slide\n\n'
+    '- "implication" not "text" or "body" (signal slide)\n\n'
     "OVERRIDE OUTPUT FORMAT — use this exact structure:\n"
     '{\n'
     '  "caption": "3-4 sentences here, minimum 50 words, lead with the most interesting fact and explain why it matters...",\n'
     '  "slides": [\n'
     '    {"type": "cover", ...cover fields},\n'
-    '    ...content slides in narrative order...\n'
+    '    ...content slides in narrative order...,\n'
+    '    {"type": "cta", "headline": "story-specific follow hook"}\n'
     '  ]\n'
     '}\n'
 )
@@ -330,10 +347,10 @@ def scrape(url: str) -> dict:
 
 # ── STEP 2: WRITE ─────────────────────────────────────────────────────────────
 
-def write(article: dict) -> list:
+def write(article: dict) -> dict:
     """
-    Call Gemini 2.5 Flash with the article content.
-    Returns the validated slides list.
+    Call Groq (llama-3.3-70b-versatile) with the article content.
+    Returns {"slides": list, "caption": str} — slides end with a cta slide.
     Raises ValueError on API failure, JSON parse error, or schema violation.
     """
     api_key = os.environ.get("GROQ_API_KEY", "").strip()
@@ -407,10 +424,19 @@ def write(article: dict) -> list:
             f"got {slides[0].get('type')!r}\n\nRaw: {raw}"
         )
 
-    if slides[-1].get("type") == "cta":
-        slides = slides[:-1]  # strip any cta the model still emits
+    # cta is required as the LAST slide. Drop any stray mid-list cta the
+    # model emits; if it omitted the final cta, append a brand-default so
+    # the carousel never ships without a follow hook.
+    last = slides[-1]
+    slides = [s for s in slides[:-1] if s.get("type") != "cta"] + [last]
+    if last.get("type") != "cta":
+        print("[writer] model omitted cta slide — appending default follow hook", file=sys.stderr)
+        slides = slides + [{
+            "type": "cta",
+            "headline": "We track AI and spatial computing before it goes mainstream. Follow along.",
+        }]
 
-    middle = slides[1:]
+    middle = slides[1:-1]
     if not (2 <= len(middle) <= 6):
         raise ValueError(
             f"Invalid carousel JSON: expected 2–6 middle slides, "
@@ -447,7 +473,39 @@ def write(article: dict) -> list:
             f"got {len(caption)} chars\n\nRaw: {raw}"
         )
 
+    _warn_on_quality(slides)
+
     return {"slides": slides, "caption": caption}
+
+
+# Quality floors are enforced in the prompt; here they only WARN (stderr →
+# bot.error.log) so drift is observable without killing a deliverable carousel.
+_HEDGING_PHRASES = ("could ", "might ", "may ", "has potential", "have potential")
+
+
+def _warn_on_quality(slides: list) -> None:
+    for slide in slides:
+        stype = slide.get("type")
+        if stype == "signal":
+            impl = slide.get("implication", "")
+            wc = len(impl.split())
+            if wc < 25:
+                print(
+                    f"[writer] QUALITY WARNING: signal.implication is {wc} words "
+                    "(minimum 25)", file=sys.stderr,
+                )
+            if any(h in impl.lower() for h in _HEDGING_PHRASES):
+                print(
+                    "[writer] QUALITY WARNING: signal.implication uses hedging "
+                    "language ('could'/'might'/'has potential')", file=sys.stderr,
+                )
+        elif stype == "context":
+            wc = len(slide.get("body", "").split())
+            if wc < 30:
+                print(
+                    f"[writer] QUALITY WARNING: context.body is {wc} words "
+                    "(minimum 30)", file=sys.stderr,
+                )
 
 
 # ── STEP 3: GENERATE ──────────────────────────────────────────────────────────

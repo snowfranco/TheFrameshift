@@ -39,19 +39,19 @@ _EXPLAINER = {
 
 # ── Size tests — every slide type must produce a 1080×1350 image ──────────────
 
-@pytest.mark.parametrize("render_fn,slide,extra", [
-    (render_cover,     _COVER,     {}),
-    (render_stat,      _STAT,      {"slide_num": 2}),
-    (render_quote,     _QUOTE,     {"slide_num": 3}),
-    (render_context,   _CONTEXT,   {"slide_num": 2}),
-    (render_contrast,  _CONTRAST,  {"slide_num": 3}),
-    (render_timeline,  _TIMELINE,  {"slide_num": 4}),
-    (render_explainer, _EXPLAINER, {"slide_num": 3}),
-    (render_signal,    _SIGNAL,    {"slide_num": 5}),
-    (render_cta,       _CTA,       {}),
+@pytest.mark.parametrize("render_fn,slide", [
+    (render_cover,     _COVER),
+    (render_stat,      _STAT),
+    (render_quote,     _QUOTE),
+    (render_context,   _CONTEXT),
+    (render_contrast,  _CONTRAST),
+    (render_timeline,  _TIMELINE),
+    (render_explainer, _EXPLAINER),
+    (render_signal,    _SIGNAL),
+    (render_cta,       _CTA),
 ])
-def test_render_size(render_fn, slide, extra):
-    img = render_fn(slide, **extra)
+def test_render_size(render_fn, slide):
+    img = render_fn(slide)
     assert img.size == (W, H), f"{render_fn.__name__} produced {img.size}, expected ({W}, {H})"
 
 

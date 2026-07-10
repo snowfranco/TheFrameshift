@@ -361,7 +361,15 @@ def _apply_source_cap(items: list, max_per_source: int = 3) -> list:
 
 # ── Main pipeline ─────────────────────────────────────────────────────────────
 
-def run() -> list:
+def run(raise_on_send_failure: bool = False) -> list:
+    """Fetch, score, dedup, and rank candidates; send the top-10 list to
+    Telegram and persist pending state.
+
+    raise_on_send_failure: when True (the bot's approval flow), a failed or
+    unconfigured Telegram send raises RuntimeError instead of being swallowed
+    — otherwise the bot reports success while the operator never sees a list.
+    CLI usage keeps the old best-effort behaviour (default False).
+    """
     print("[ingestion] loading sources.yaml")
     config = _load_config()
     topics = config.get("topics", [])
@@ -443,12 +451,23 @@ def run() -> list:
                 timeout=10,
             )
             resp.raise_for_status()
+            if not resp.json().get("ok", False):
+                raise RuntimeError(f"Telegram API returned ok=false: {resp.text[:200]}")
             print("[ingestion] candidate list sent to Telegram")
         except Exception as exc:
             print(f"[ingestion] Telegram send error: {exc}")
+            if raise_on_send_failure:
+                raise RuntimeError(
+                    f"candidate list was NOT sent to Telegram: {exc}"
+                ) from exc
     else:
         print("[ingestion] Telegram not configured — printing candidate list")
         print(message)
+        if raise_on_send_failure:
+            raise RuntimeError(
+                "TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID not set — "
+                "candidate list was not sent to Telegram"
+            )
 
     # Save full candidate list to store/
     os.makedirs(_STORE_DIR, exist_ok=True)

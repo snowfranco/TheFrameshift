@@ -13,6 +13,8 @@ Usage:
 from __future__ import annotations
 
 import asyncio
+import atexit
+import functools
 import json
 import logging
 import os
@@ -53,6 +55,7 @@ _WATCHER_DIR   = os.path.dirname(os.path.abspath(__file__))
 _STORE_DIR     = os.path.normpath(os.path.join(_WATCHER_DIR, "..", "store"))
 _PENDING_PATH  = os.path.join(_STORE_DIR, "pending_candidates.json")
 _RUN_LOG_PATH  = os.path.join(_STORE_DIR, "run_log.json")
+_PID_PATH      = os.path.join(_STORE_DIR, "bot.pid")
 
 _APPROVAL_TIMEOUT_HOURS = 2
 _DAILY_HOUR   = 8
@@ -128,6 +131,14 @@ def _valid_url(url: str) -> bool:
         return False
 
 
+def _looks_like_approval(text: str) -> bool:
+    """True if text matches an approval shape (ALL / SKIP / digits) at all,
+    regardless of whether a pending list exists. Used to decide whether a
+    plain message deserves an approval-flow response or is just chat."""
+    t = text.strip().upper()
+    return t in ("ALL", "SKIP") or bool(re.fullmatch(r"[\d\s,]+", t))
+
+
 def _parse_approval(text: str, total: int) -> list[int] | str | None:
     """
     Returns list of 1-based story indices, "SKIP", or None (not an approval).
@@ -147,7 +158,19 @@ def _parse_approval(text: str, total: int) -> list[int] | str | None:
 def _owner_chat(update: Update) -> bool:
     """True if the message comes from the configured owner chat."""
     owner = os.environ.get("TELEGRAM_CHAT_ID", "").strip()
-    return not owner or str(update.message.chat_id) == owner
+    if not owner:
+        return True
+    incoming = str(update.message.chat_id)
+    if incoming != owner:
+        # The single most common cause of "/run silently does nothing":
+        # the message arrived from a chat that doesn't match TELEGRAM_CHAT_ID.
+        log.warning(
+            "message from chat %s ignored — TELEGRAM_CHAT_ID is %s "
+            "(fix .env if this is you)",
+            incoming, owner,
+        )
+        return False
+    return True
 
 
 # ── Core: generate + deliver one story ───────────────────────────────────────
@@ -199,8 +222,10 @@ async def _carousel_for(
     index: int,
     total: int,
     reply,
-) -> None:
-    print(f"[bot] generating carousel {index}/{total}...")
+) -> bool:
+    """Generate + deliver one story. Returns True if delivered.
+    Every failure path replies to Telegram — never silent."""
+    log.info("generating carousel %d/%d... (%s)", index, total, url)
     entry: dict = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "url": url,
@@ -218,6 +243,7 @@ async def _carousel_for(
         await asyncio.to_thread(_delivery.send, png_paths, data, url)
         entry["slides_count"] = len(data["slides"])
         entry["delivered"] = True
+        log.info("carousel %d/%d delivered", index, total)
         _feedback.record_scrape_attempt(url, True)
     except Exception as exc:
         msg = str(exc)
@@ -225,10 +251,10 @@ async def _carousel_for(
         log.error("carousel error %r: %s", url, exc)
         if _is_scrape_error(msg):
             _feedback.record_scrape_attempt(url, False, reason=msg)
-            alt_url = _serper_alternative(title)
+            # requests-based Serper call — keep it off the event loop
+            alt_url = await asyncio.to_thread(_serper_alternative, title)
             if alt_url:
                 log.info("story %d failed on %s, trying alternative: %s", index, url, alt_url)
-                print(f"[bot] story {index} failed on {url}, trying alternative: {alt_url}", file=sys.stderr)
                 try:
                     data = await asyncio.to_thread(_writer.generate, alt_url)
                     image_obj = data.get("image_obj")
@@ -241,23 +267,33 @@ async def _carousel_for(
                     entry["delivered"] = True
                     entry["error"] = None
                     entry["url"] = alt_url
+                    log.info("carousel %d/%d delivered (via alternative source)", index, total)
                     _feedback.record_scrape_attempt(alt_url, True)
                 except Exception as alt_exc:
                     entry["error"] = str(alt_exc)
                     log.error("alternative also failed for %r: %s", alt_url, alt_exc)
                     if reply:
-                        await reply(_FETCH_FAIL_MSG)
+                        await reply(f"[bot] story {index}/{total}: {_FETCH_FAIL_MSG}")
             elif reply:
-                await reply(_FETCH_FAIL_MSG)
+                await reply(f"[bot] story {index}/{total}: {_FETCH_FAIL_MSG}")
         elif reply:
             await reply(f"[bot] story {index}/{total} failed: {_strip_raw_json(msg)}")
-    _log_run(entry)
+    try:
+        _log_run(entry)
+    except Exception:
+        log.exception("could not write run_log.json")
+    return entry["delivered"]
 
 
 # ── Shared ingestion trigger ──────────────────────────────────────────────────
 
 async def _trigger_ingestion() -> list:
-    candidates = await asyncio.to_thread(_ingestion.run)
+    """Run ingestion in a worker thread. Raises if the candidate list could
+    not be delivered to Telegram — the caller must surface that, otherwise
+    the bot reports success while the operator never sees a list."""
+    candidates = await asyncio.to_thread(
+        functools.partial(_ingestion.run, raise_on_send_failure=True)
+    )
     _save_pending(candidates)
     return candidates
 
@@ -275,6 +311,7 @@ async def cmd_carousel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         await update.message.reply_text(f"Invalid URL: {url!r}")
         return
 
+    log.info("/carousel received: %s", url)
     await update.message.reply_text("Generating carousel...")
 
     entry: dict = {
@@ -323,23 +360,41 @@ async def cmd_carousel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
                 await update.message.reply_text(f"Generation failed: {_strip_raw_json(msg2)}")
     except Exception as exc:
         entry["error"] = str(exc)
+        log.exception("/carousel failed for %r", url)
         await update.message.reply_text(f"Error: {exc}")
-    _log_run(entry)
+    try:
+        _log_run(entry)
+    except Exception:
+        log.exception("could not write run_log.json")
 
 
 async def cmd_run(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not _owner_chat(update):
         return
+    log.info("/run received from chat %s", update.message.chat_id)
     await update.message.reply_text("[bot] running ingestion...")
     try:
+        log.info("ingestion started")
         candidates = await _trigger_ingestion()
+        log.info("%d candidates found", len(candidates))
+        if not candidates:
+            await update.message.reply_text(
+                "[bot] ingestion finished with 0 candidates — nothing to approve. "
+                "Check sources / API keys if this is unexpected."
+            )
+            return
+        log.info("candidate list sent to Telegram")
         await update.message.reply_text(
             f"[bot] {len(candidates)} candidates sent. "
-            "Reply ALL, story numbers (e.g. 1,3), or SKIP."
+            "Reply ALL, story numbers (e.g. 1,3), or SKIP (2h window)."
         )
+        log.info("waiting for approval...")
     except Exception as exc:
-        log.error("ingestion error: %s", exc)
-        await update.message.reply_text(f"[bot] ingestion error: {exc}")
+        log.exception("ingestion failed")
+        await update.message.reply_text(
+            f"[bot] ingestion failed: {exc}\n"
+            "No candidate list is pending — fix the issue and /run again."
+        )
 
 
 async def cmd_substack(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -396,42 +451,100 @@ async def cmd_substack(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     )
 
 
+# True while an approved batch is generating — blocks duplicate approvals
+# without clearing the pending file before the batch actually completes.
+_batch_in_progress = False
+
+
 async def msg_approval(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    global _batch_in_progress
     if not _owner_chat(update):
         return
 
     text = (update.message.text or "").strip()
-    pending = _load_pending()
-    if not pending:
-        return
+    if not _looks_like_approval(text):
+        return  # ordinary chat message — not an approval attempt
 
-    if _pending_expired(pending):
-        _clear_pending()
-        log.info("approval window expired — cleared pending")
-        return
+    log.info("approval received: %s", text)
+    try:
+        # Always re-read state from disk — never trust in-memory state
+        pending = _load_pending()
+        if not pending:
+            log.info("approval arrived but no pending candidates on disk")
+            await update.message.reply_text(
+                "[bot] No pending candidates — run /run first."
+            )
+            return
 
-    candidates = pending.get("candidates", [])
-    result = _parse_approval(text, len(candidates))
-    if result is None:
-        return  # not a recognised approval pattern
+        if _pending_expired(pending):
+            _clear_pending()
+            log.info("approval window expired — cleared pending")
+            await update.message.reply_text(
+                "[bot] Approval window expired. Run /run to generate a new candidate list."
+            )
+            return
 
-    _clear_pending()
+        candidates = pending.get("candidates", [])
+        result = _parse_approval(text, len(candidates))
+        if result is None:
+            log.info("approval %r did not parse against %d candidates", text, len(candidates))
+            await update.message.reply_text(
+                f"[bot] Couldn't match that to the list. Reply ALL, "
+                f"story numbers 1–{len(candidates)} (e.g. 1,3), or SKIP."
+            )
+            return
 
-    if result == "SKIP":
-        await update.message.reply_text("[bot] run skipped.")
-        return
+        if result == "SKIP":
+            _clear_pending()
+            log.info("run skipped by operator")
+            await update.message.reply_text("[bot] run skipped.")
+            return
 
-    approved = [candidates[i - 1] for i in result]
-    if not approved:
-        await update.message.reply_text("[bot] no valid story numbers selected.")
-        return
+        approved = [candidates[i - 1] for i in result]
+        if not approved:
+            await update.message.reply_text("[bot] no valid story numbers selected.")
+            return
 
-    await update.message.reply_text(f"[bot] approved {len(approved)} story/stories — generating...")
-    for idx, story in enumerate(approved, 1):
-        await _carousel_for(
-            story["url"], story["title"], idx, len(approved), update.message.reply_text
+        if _batch_in_progress:
+            log.info("approval ignored — a batch is already generating")
+            await update.message.reply_text(
+                "[bot] A batch is already generating — wait for it to finish."
+            )
+            return
+
+        log.info("parsed approval: stories %s", result)
+        await update.message.reply_text(
+            f"[bot] approved {len(approved)} story/stories — generating..."
         )
-    await update.message.reply_text(f"[bot] batch complete — {len(approved)} carousel(s) delivered.")
+
+        _batch_in_progress = True
+        delivered = 0
+        try:
+            for idx, story in enumerate(approved, 1):
+                ok = await _carousel_for(
+                    story["url"], story["title"], idx, len(approved),
+                    update.message.reply_text,
+                )
+                delivered += 1 if ok else 0
+        finally:
+            _batch_in_progress = False
+
+        # Clear only after the batch is processed — a crash above leaves the
+        # pending file on disk so the operator can approve again.
+        _clear_pending()
+        log.info("batch complete — %d/%d delivered", delivered, len(approved))
+        await update.message.reply_text(
+            f"[bot] batch complete — {delivered}/{len(approved)} carousel(s) delivered."
+        )
+    except Exception as exc:
+        log.exception("approval processing failed")
+        try:
+            await update.message.reply_text(
+                f"[bot] approval processing failed: {exc}\n"
+                "Pending list kept — reply again to retry, or /run for a fresh list."
+            )
+        except Exception:
+            log.exception("could not report approval failure to Telegram")
 
 
 # ── Daily scheduled job ───────────────────────────────────────────────────────
@@ -440,24 +553,122 @@ async def daily_job(context: ContextTypes.DEFAULT_TYPE) -> None:
     log.info("daily job triggered")
     chat_id = os.environ.get("TELEGRAM_CHAT_ID", "").strip()
     try:
+        log.info("ingestion started")
         candidates = await _trigger_ingestion()
-        if chat_id:
+        log.info("%d candidates found", len(candidates))
+        if not chat_id:
+            log.warning("TELEGRAM_CHAT_ID not set — daily run completed but nobody was notified")
+            return
+        if not candidates:
             await context.bot.send_message(
                 chat_id=chat_id,
-                text=(
-                    f"[bot] {len(candidates)} candidates above. "
-                    "Reply ALL, story numbers (e.g. 1,3), or SKIP (2h window)."
-                ),
+                text="[bot] daily run: 0 candidates today — nothing to approve.",
             )
+            return
+        log.info("candidate list sent to Telegram")
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=(
+                f"[bot] {len(candidates)} candidates above. "
+                "Reply ALL, story numbers (e.g. 1,3), or SKIP (2h window)."
+            ),
+        )
+        log.info("waiting for approval...")
     except Exception as exc:
-        log.error("daily job error: %s", exc)
+        log.exception("daily job failed")
         if chat_id:
             try:
                 await context.bot.send_message(
-                    chat_id=chat_id, text=f"[bot] daily job error: {exc}"
+                    chat_id=chat_id,
+                    text=f"[bot] Daily run failed: {exc}. Run /run manually to retry.",
                 )
             except Exception:
-                pass
+                log.exception("could not send daily-failure message to Telegram")
+
+
+# ── Global error handler ──────────────────────────────────────────────────────
+
+async def on_error(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Catch-all for exceptions that escape any handler. Without this, PTB
+    swallows handler exceptions with a log line and Telegram stays silent."""
+    log.error("unhandled exception in handler", exc_info=context.error)
+    target = None
+    if isinstance(update, Update) and update.effective_chat:
+        target = update.effective_chat.id
+    else:
+        target = os.environ.get("TELEGRAM_CHAT_ID", "").strip() or None
+    if target:
+        try:
+            await context.bot.send_message(
+                chat_id=target, text=f"⚠️ [bot] unhandled error: {context.error}"
+            )
+        except Exception:
+            log.exception("could not report unhandled error to Telegram")
+
+
+async def _post_init(app: Application) -> None:
+    """Announce startup so a crash-restart loop is visible, not silent."""
+    chat_id = os.environ.get("TELEGRAM_CHAT_ID", "").strip()
+    if not chat_id:
+        log.warning("TELEGRAM_CHAT_ID not set — startup message skipped")
+        return
+    try:
+        await app.bot.send_message(
+            chat_id=chat_id,
+            text=(
+                "[bot] online — daily run at 8:00 AM Toronto | /run for manual | "
+                "/carousel <url> for on-demand"
+            ),
+        )
+    except Exception:
+        log.exception("startup message failed — check TELEGRAM_CHAT_ID / network")
+
+
+# ── PID lock ─────────────────────────────────────────────────────────────────
+
+def _release_pid_lock() -> None:
+    """Remove store/bot.pid, but only if it still belongs to this process."""
+    try:
+        with open(_PID_PATH) as fh:
+            if fh.read().strip() == str(os.getpid()):
+                os.remove(_PID_PATH)
+    except (FileNotFoundError, OSError, ValueError):
+        pass
+
+
+def _acquire_pid_lock() -> None:
+    """Refuse to start if another bot instance is polling — two pollers make
+    Telegram return 409 Conflict and updates get lost intermittently.
+    A stale PID file (LaunchAgent restart after a crash) is taken over."""
+    os.makedirs(_STORE_DIR, exist_ok=True)
+    if os.path.exists(_PID_PATH):
+        old_pid = None
+        try:
+            with open(_PID_PATH) as fh:
+                old_pid = int(fh.read().strip())
+        except (ValueError, OSError):
+            pass
+        if old_pid and old_pid != os.getpid():
+            try:
+                os.kill(old_pid, 0)  # signal 0 = existence check only
+            except ProcessLookupError:
+                log.info("stale bot.pid (pid %d not running) — taking over", old_pid)
+            except PermissionError:
+                sys.exit(
+                    f"[bot] another instance appears to be running (pid {old_pid}, "
+                    "store/bot.pid, owned by a different user). Stop it first."
+                )
+            else:
+                sys.exit(
+                    f"[bot] another instance is already running (pid {old_pid}, store/bot.pid).\n"
+                    "Two instances cause Telegram 409 Conflict and dropped updates.\n"
+                    "Stop the LaunchAgent first: launchctl unload "
+                    "~/Library/LaunchAgents/com.frameshift.bot.plist\n"
+                    "or remove store/bot.pid if you are sure it is stale."
+                )
+    with open(_PID_PATH, "w") as fh:
+        fh.write(str(os.getpid()))
+    atexit.register(_release_pid_lock)
 
 
 # ── Entry point ───────────────────────────────────────────────────────────────
@@ -467,24 +678,36 @@ def main() -> None:
     if not token:
         sys.exit("[bot] TELEGRAM_BOT_TOKEN not set — check .env")
 
+    _acquire_pid_lock()
+
     import pytz
     toronto_tz = pytz.timezone(_TIMEZONE)
 
-    app = Application.builder().token(token).build()
+    app = Application.builder().token(token).post_init(_post_init).build()
     app.add_handler(CommandHandler("carousel", cmd_carousel))
     app.add_handler(CommandHandler("run", cmd_run))
     app.add_handler(CommandHandler("substack", cmd_substack))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, msg_approval))
+    app.add_error_handler(on_error)
+
+    if app.job_queue is None:
+        sys.exit(
+            "[bot] job queue unavailable — the daily scheduler cannot run.\n"
+            "Install the scheduler extra: pip3 install 'python-telegram-bot[job-queue]'"
+        )
 
     run_time = dt_time(_DAILY_HOUR, _DAILY_MINUTE, tzinfo=toronto_tz)
     # misfire_grace_time=3600: fire the job even if the event loop was busy at the exact second
     job = app.job_queue.run_daily(daily_job, time=run_time, name="daily_ingestion",
                                   job_kwargs={"misfire_grace_time": 3600})
 
+    # job.next_t no longer exists on PTB v20+ — compute from the APScheduler
+    # trigger (job.job is the underlying APScheduler job; before the scheduler
+    # starts, next_run_time is not yet populated).
     try:
-        next_run = job.next_t
+        next_run = job.job.trigger.get_next_fire_time(None, datetime.now(toronto_tz))
     except Exception:
-        next_run = "unknown"
+        next_run = f"daily {_DAILY_HOUR:02d}:{_DAILY_MINUTE:02d} {_TIMEZONE}"
 
     print(f"[bot] starting — on-demand: /carousel <url> | daily: 8:00 AM Toronto")
     print(f"[bot] scheduler armed — next run: {next_run}")
