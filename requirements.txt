@@ -2,8 +2,11 @@ pillow
 requests
 beautifulsoup4
 google-generativeai
-python-telegram-bot
+# job-queue extra pins a compatible APScheduler — without it app.job_queue
+# is None and bot.py cannot arm the daily scheduler
+python-telegram-bot[job-queue]
 python-dotenv
 apscheduler
 feedparser
 pyyaml
+pytz
