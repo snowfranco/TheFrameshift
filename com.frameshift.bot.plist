@@ -8,18 +8,18 @@
     <key>ProgramArguments</key>
     <array>
         <string>/usr/bin/python3</string>
-        <string>/Users/snow/frameshift_v2/watcher/bot.py</string>
+        <string>/Users/snow/Projects/frameshift_v2/watcher/bot.py</string>
     </array>
     <key>WorkingDirectory</key>
-    <string>/Users/snow/frameshift_v2</string>
+    <string>/Users/snow/Projects/frameshift_v2</string>
     <key>RunAtLoad</key>
     <true/>
     <key>KeepAlive</key>
     <true/>
     <key>StandardOutPath</key>
-    <string>/Users/snow/frameshift_v2/store/bot.log</string>
+    <string>/Users/snow/Projects/frameshift_v2/store/bot.log</string>
     <key>StandardErrorPath</key>
-    <string>/Users/snow/frameshift_v2/store/bot.error.log</string>
+    <string>/Users/snow/Projects/frameshift_v2/store/bot.error.log</string>
     <key>EnvironmentVariables</key>
     <dict>
         <key>PATH</key>
